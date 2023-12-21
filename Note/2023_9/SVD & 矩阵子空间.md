@@ -1,5 +1,11 @@
 ## SVD & 矩阵子空间
 
+> Hongyu Chen
+>
+> 2314727047@qq.com
+
+
+
 ### 一、子空间
 
 对矩阵 $A\in R^{m\times n}$，其子空间定义如下。
@@ -130,5 +136,4 @@ $$
 z_s=M_\theta \theta\\
 y_t=N_\theta \theta
 $$
-
 
