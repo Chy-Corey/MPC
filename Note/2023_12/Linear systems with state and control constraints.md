@@ -24,7 +24,7 @@ $$
 
 **Remark 2.1 & 定理 2.2：**
 
-<img src="E:\Note\MPC\Note\2023_12\image\20.png" alt="20" style="zoom:60%;" />
+<img src=".\image\20.png" alt="20" style="zoom:60%;" />
 
 1. $O(A,C,Y)$ 满足以下性质：$O_{\infty}\subset O_{t_2} \subset O_{t_1},t_1\leq t_2$
 
@@ -129,3 +129,13 @@ $$
 
 
 **定理 5.1：**
+
+对集合 Y 进行紧缩： $Y(\epsilon)=\{y:f_i(y)\leq -\epsilon \}$ ，定义 $\epsilon_0=-max \ f_i(0)$ ，$\epsilon \in (0,\epsilon_0]$ 。
+
+那么以下关系满足：
+$$
+O_{\infty}(A,C,Y(\epsilon))\subset O_{\infty}(A,\hat{C},Y(\epsilon)\times Y)\subset O_{\infty}(A,C,Y)
+$$
+并且 $O_{\infty}(A,\hat{C},Y(\epsilon)\times Y)$ 可有限决定。
+
+证明与 4.1 相同。

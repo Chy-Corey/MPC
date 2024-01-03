@@ -34,7 +34,8 @@
   L=[-K\ \ \ I_m]M_{\theta}
   $$
   
-
+  
+  
 - 第二步：将 $\theta$ 增广至系统状态
   $$
   \begin{align}
@@ -47,7 +48,8 @@
   \end{align}
   $$
   
-
+  
+  
 - 第三步：给出不变集的定义式
 
   定义凸集：$W_{\lambda}=\{w=(x,\theta):(x,Kx+L\theta)\in Z,M_{\theta}\theta\in\lambda Z\}$
@@ -56,9 +58,75 @@
 
   给出最大不变集的定义式：$O_{\infty}^w=\{w:A_w^iw\in W_1,\forall i\geq 0\}$
 
-- 第四步：有限确定的不变集
-
   
 
-- 第五步
+- 第四步：有限确定的不变集
 
+  `Linear systems with state and control constraints` 中的定理 5.1 ：
+
+  ![21](.\image\21.png)
+
+  ![22](.\image\22.png)
+
+  $O_{\infty}(A,\hat{C},Y(\epsilon)\times Y)$ 可有限决定。
+
+  在本文中使用了此定理。
+
+  $O_{\infty,\lambda}^w=\{w:A_w^iw\in W_{\lambda},\forall i\geq 0\}$ 可有限决定。 
+
+
+
+### Chapter 3 跟踪 MPC
+
+在本节中，介绍了建议用于跟踪的 MPC。该预测控制器基于**将稳态和输入添加为决策变量**，使用修改后的成本函数和扩展终端约束。
+
+**假设1：**
+
+- (A,B) 可镇定
+
+**假设 2：**
+
+- Q, R, T 正定
+- (A+BK) 赫尔维兹矩阵
+- P 正定， $(A+BK)^T(A+BK)-P=-(Q+K^TRK)$
+- $X_f^w$ 是增益 K 下的满足系统和约束的容许跟踪不变集
+
+成本函数：
+
+![23](.\image\23.png)
+
+优化问题：
+
+![24](.\image\24.png)
+
+其中 $\hat{x}_s$ 是人工指定的目标稳态。与标准 MPC 不同的是，惩罚了人工稳态和计算得到的稳态的偏差，以及控制输入和控制稳定控制输入的偏差；此外还增加了一个终端约束用于惩罚人工稳态和计算得到的稳态的偏差。
+
+这个优化问题不依赖于人工稳态的选取，存在一个凸集 $X_N$ ，初始状态在该区域内的优化问题都有解。那么假设 2 中的 $X_f=Proj_x(X_f^w)\subseteq X_N$ 。
+
+
+
+**定理1：**
+
+当假设 1 和 2 成立时，取 $X_f^w=O_{\infty,\lambda}^w$ 。考虑 $\hat{x}_s$ 是可行的，那么对于任何可行的初始状态 $x_0\in x_N$ ，该控制器可将系统状态稳定到 $\hat{x}_s$ 。
+
+
+
+**备注1：**
+
+稳态集合 $X_s=Proj_x(Z_s)$ ，$Z_s=\{(x_s,u_s)=M_{\theta}\theta: M_{\theta}\theta\in Z \}$
+
+增广稳态集合 $W_{\lambda}=\{w=(x,\theta):(x,Kx+L\theta)\in Z,M_{\theta}\theta\in\lambda Z\}$，
+
+最大不变集 $O_{\infty,\lambda}^w=\{w:A_w^iw\in W_{\lambda},\forall i\geq 0\}$ ，其中的 x 的集合为 $O_{\infty,\lambda}=Proj_x(O_{\infty,\lambda}^w)$ 。
+
+由于 $X_S\subset O_{\infty,1}$ （稳态集合比不变集小），所以 $\lambda X_S\subset \lambda O_{\infty,1}\subset O_{\infty,\lambda}$ 。
+
+所以 $\lambda X_S\subset X_f\subset X_N$ ，也就是说给定的稳态 $\hat{x}_s$ 如果在 $\lambda X_s$ 中，就在不变集中，可以进行无偏跟踪。
+
+
+
+**备注2：**
+
+考虑给定的可接受目标稳定状态 $\hat{x}_s\in \lambda X_s$ ，并设计一个标准MPC，将最大容许不变集 $O_{\infty}(\hat{x}_s)$ 设置为终端约束。考虑本文提出的 MPC，使用相同的参数（Q、R、P、K 和 N）和终端约束 $O_{\infty,\lambda}^w$ 。
+
+1. 显然 $$
