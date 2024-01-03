@@ -129,4 +129,58 @@
 
 考虑给定的可接受目标稳定状态 $\hat{x}_s\in \lambda X_s$ ，并设计一个标准MPC，将最大容许不变集 $O_{\infty}(\hat{x}_s)$ 设置为终端约束。考虑本文提出的 MPC，使用相同的参数（Q、R、P、K 和 N）和终端约束 $O_{\infty,\lambda}^w$ 。
 
-1. 显然 $$
+1. 以 $\hat{x}_s$ 作为目标点的不变集 $O_{\infty}(\hat{x}_s)$ 表示能够收敛到 $\hat{x}_s$ ，$O_{\infty}(\hat{x}_s) \subset O(\infty,\lambda)$ 。两者作为终端约束时，谁更大吸引域则越大。说明本文提出的方法拥有更大的吸引域。
+2. 由于成本函数要求 $x_S$ 与 $\hat{x}_S$ 尽量接近，如果 T 较小，会导致计算的 $x_s$ 距离目标稳态略远，会损失一定的最优性能（不能最快逼近目标稳态），这种最优性损失可以通过增大矩阵T惩罚跟踪误差项解决。
+
+
+
+### 定理证明
+
+**引理1：**
+
+![25](.\image\25.png)
+
+$\hat{x}_S$ 是可行的指定稳态，K 是控制增益，P是对应的李雅普诺夫矩阵，保证系统稳定性。
+
+对于稳态 $\bar{x}_s=\lambda x_s+(1-\lambda)\hat{x}_S$ ，满足以上两个性质：
+
+**证明：**
+
+定义椭球体：$E(x_0,\tau)=\{x\in R^n:||x-x_0||^2_P\leq \tau \}$
+
+令 $z_s=(x_s,u_s)=M_{\theta}\theta$ ，$\hat{z}_s=(\hat{x}_s,\hat{u}_s)=M_{\theta}\hat{\theta}$ ，$\bar{z}_s=(\bar{x}_s,\bar{u}_s)=M_{\theta}\bar{\theta}$ 。对应的，$\bar{\theta}=\lambda \theta+(1-\lambda)\hat{\theta}$ 。
+
+注意 $(x_s,u_s)$ 在 $Z$ (Z是系统约束)的内点中，那么一定存在一个合适的常数 $\epsilon>0$ 和 $\gamma\in (0,1)$ 满足：
+$$
+\forall x\in E(x_s,\epsilon),(x,Kx+L\theta)\in \gamma Z
+$$
+可以理解为内点及其周围可以组成一个球体，被包含在 Z 里，并且可以用 $\epsilon$ 和 $\gamma$ 来量化其大小。
+
+给定一个充分大的 $\lambda \in (0,1)$ ，使：
+$$
+\begin{align}
+(0,L(\bar{\theta}-\theta))&=(0,L(\lambda \theta+(1-\lambda)\hat{\theta}-\theta))\\
+&=(0,L((1-\lambda)(\hat{\theta}-\theta)))\\
+&\in (1-\gamma)Z
+\end{align}
+$$
+$\lambda$ 需要充分大，是要让 $\bar{\theta}$ 距离 $\theta$ 充分近，保证在区域 $ (1-\gamma)Z$ 内 。
+
+找一个 $\beta>0$ ，满足 $x_s\in E(\bar{x}_s,\beta)\subset E(x_s,\epsilon)$ 。
+
+对于 $\forall x\in E(\bar{x}_s,\beta)$ ，有：
+$$
+\begin{align}
+(x,Kx+L\bar{\theta})&=(x,Kx+L(\bar{\theta}+\theta-\theta))\\
+&=(x,Kx+L\theta)+(x,L(\bar{\theta}-\theta))
+\end{align}
+$$
+由于对 $\forall x\in E(\bar{x}_s,\beta)$ ，有：
+$$
+(x,Kx+L\theta)\in \gamma Z\\
+(0,L(\bar{\theta}-\theta))\in (1-\gamma)Z
+$$
+所以 $(x,Kx+L\bar{\theta})\in Z$ 成立。 
+
+以 $\bar{x}$ ($\bar{\theta}$) 得到的控制输入 $Kx+L\bar{\theta}$ 满足系统约束，并且 K 和 P 是李雅普诺夫稳定的，所以 x 会一直保留在 $E(\bar{x}_s,\beta)$  中，即 $E(\bar{x}_s,\beta)$ 是 $O_{\infty}(\bar{x}_s)$ 的一个子集：$x_s\in E(\bar{x}_s,\beta)\subset O_{\infty}(\bar{x}_s)$ 。
+
