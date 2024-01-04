@@ -184,3 +184,82 @@ $$
 
 以 $\bar{x}$ ($\bar{\theta}$) 得到的控制输入 $Kx+L\bar{\theta}$ 满足系统约束，并且 K 和 P 是李雅普诺夫稳定的，所以 x 会一直保留在 $E(\bar{x}_s,\beta)$  中，即 $E(\bar{x}_s,\beta)$ 是 $O_{\infty}(\bar{x}_s)$ 的一个子集：$x_s\in E(\bar{x}_s,\beta)\subset O_{\infty}(\bar{x}_s)$ 。
 
+<img src=".\image\28.png" alt="28" style="zoom:30%;" />
+
+
+
+接下来证明第二点，考虑 $\bar{x}_s$ 的定义式： $\bar{x}_s=\lambda x_s+(1-\lambda)\hat{x}_S$ ，可以得到：
+$$
+x_s-\bar{x}_s=(1-\lambda)(x_s-\hat{x}_s)\\
+\bar{x}_s-\hat{x}_s=\lambda(x_s-\hat{x}_s)
+$$
+将等式两边求范数：
+$$
+||x_s-\bar{x}_s||_P=(1-\lambda)||x_s-\hat{x}_s||_P\\
+||\bar{x}_s-\hat{x}_s||_T=\lambda||x_s-\hat{x}_s||_T
+$$
+平方求和得到：
+$$
+\begin{align}
+||x_s-\bar{x}_s||_P^2+||\bar{x}_s-\hat{x}_s||_T^2&=(1-\lambda)^2||x_s-\hat{x}_s||_P^2+\lambda^2||x_s-\hat{x}_s||_T^2\\
+&=||x_s-\hat{x}_s||_H^2
+\end{align}
+$$
+其中 $H=\lambda^2T+(1-\lambda)^2P$ 。
+
+证明目标就转为了 $||x_s-\hat{x}_s||_H^2<||\bar{x}_s-\hat{x}_s||_T^2$ ，即证明 $T-H>0$ 。
+
+对于 T, P，存在常数 $\gamma>0$ ，使 $P<\gamma T$ 。那么：
+$$
+\begin{align}
+T-H &=(1-\lambda^2)T-(1-\lambda)^2P\\
+    &>((1-\lambda^2)-(1-\lambda)^2\gamma)T\\
+    &=(1-\lambda)[(1+\lambda)-(1-\lambda)\gamma]T
+\end{align}
+$$
+要使上式大于 0 ，则 $1+\lambda-(1-\lambda)\gamma>0$ ，可以推出 $\lambda>\frac{\gamma-1}{\gamma+1}$ 。第二点证毕。
+
+
+
+**引理2：**
+
+![26](.\image\26.png)
+
+对于在系统终端约束中的状态 x ，如果 x 在目标稳态 $x_s$ 的不变集 $O_{\infty}(x_s)$ 内，则满足以上不等式。
+
+证明：
+
+![27](.\image\27.png)
+
+这里的 x 表示 $x(0)$ 。
+
+<img src=".\image\29.png" alt="29" style="zoom:67%;" />
+
+![30](.\image\30.png)
+
+
+
+**引理3：**
+
+![31](.\image\31.png)
+
+$\lambda X_s$ 是稳态集合 $X_s=Proj_x(Z_s)$ ，$Z_s=\{(x_s,u_s)=M_{\theta}\theta: M_{\theta}\theta\in Z \}$ ，考虑指定的目标稳态 $\hat{x}_S \in \lambda X_s$ ，如果优化问题 $P_N(x,\hat{x}_S)$ 的最优解使得 $||x-x_s^*||_Q=0$ ，那么 $||x-\hat{x}_s||_T=0$ 。
+
+此引理可以理解为如果人工稳态可达，当系统状态达到目标稳态时，目标稳态等于人工稳态。
+
+**证明：**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
