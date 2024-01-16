@@ -4,7 +4,7 @@
 
 #### abstract
 
-本文通过嵌入**优化预览调节（optimal preview regulation）**和**参考治理（reference governance）**，对相关约束预测容错跟踪控制（fault-tolerant tracking control, FTTC）方法提出了一些新的改进。**这种策略的主要新颖之处在于可以充分调度有限未来参考的一些有价值信息，从而优化鲁棒跟踪性能并显著扩大容错容许区域。**
+本文通过嵌入**优化预计调节（optimal preview regulation）**和**参考治理（reference governance）**，对相关约束预测容错跟踪控制（fault-tolerant tracking control, FTTC）方法提出了一些新的改进。**这种策略的主要新颖之处在于可以充分调度有限未来参考的一些有价值信息，从而优化鲁棒跟踪性能并显著扩大容错容许区域。**
 
 为了更好地说明所提策略的广泛适用性，我们考虑了一类具有状态/输入约束的 LPV 系统的鲁棒 FTTC 问题。总的来说，所涉及的关键设计包括三个部分。
 
@@ -18,7 +18,7 @@
 
 线性变参数系统：
 
-![2-1](E:\Library\硕士实验室\MPC\Note\2024_1\image\2-1.png)
+![2-1](.\image\02-01.png)
 
 该系统的输入增加了 $f_k$ ，代表了未知的执行器偏移或漂移故障向量。
 
@@ -42,7 +42,74 @@ $$
 目标是设计一个带约束的最优预测容错跟踪控制策略，能够使系统输出跟踪 $r_k$ ：
 $$
 \begin{align}
-&J_k=\Sigma_{t=0}^{\infty}U(x_{k+t},u_{k+t})\\
-& U(x_{k+t},u_{k+t})=(x_{k+t}-x_{r,k+t})^TQ(x_{k+t}-x_{r,k+t})+(u_{k+t}-u_{r,k+t})^TR(u_{k+t}-u_{r,k+t})
+&J_k=\Sigma_{t=0}^{\infty}U(x_{k+t},\ \ \ \ u_{k+t}),s.t.\ \ x_{k+t}\in X,u_{k+t}+f_{k+t}\in U \\
+& U(x_{k+t},u_{k+t})=(x_{k+t}-x_{r,k+t})^TQ(x_{k+t}-x_{r,k+t})+(u_{k+t}+f_{k+t}-u_{r,k+t})^TR(u_{k+t}+f_{k+t}-u_{r,k+t})
 \end{align}
 $$
+
+
+如果不考虑约束，无限时域 LQR 求解得到的控制率形式为：
+$$
+u_k=K_e(x_k-x_{r,k})+u_{r,k}-\hat{f}_k
+$$
+本文并没有用 MPC 的方法来计算控制输入，而是预先给定无约束下的最优控制律，并通过 $c_k$ 来保证可解性和满足约束：
+
+![02-02](.\image\02-02.png)
+
+$c_k$ 是组合了最优的预计调节器（preview regulator, PR）和参考治理（reference governance, RG）的预测输入。
+
+ 
+
+将控制律表示为：
+
+![02-03](.\image\02-03.png)
+
+$K_r\vec{r}_{k+1}$ 表示最优的预计调节器（preview regulator, PR），通过考虑后续参考指令来增强瞬态响应性能（前馈）。
+
+$\zeta_k$ 使嵌入式参考治理（reference governance, RG）成为可能，并用于加强约束优化的稳态可行性。
+
+预测扰动 $K_c\eta_k=[I\ \ \ \ 0]\vec{\eta}_k=\eta_k$ 将 $\vec{\eta}_k$ 的第一个最优值移动置于 $u_k$ 中，用于保证瞬态响应的约束满足。
+
+前馈 $K_r$ 和反馈 $K_e$ 是离线计算得到的。
+
+虽然 $η_k$ 和 $ζ_k$ 都用于保证系统约束可行性，但它们的调节机制不同。这可以通过观察 (4) 中的预测窗口来解释，因为 $η_k$ 在瞬态模式 $∀i∈ N[0,n_c-1]$ 中起作用，而 $ζ_k$ 主要影响终端模式 $∀i ≥ n_c$。
+
+
+
+#### 问题求解
+
+在本节中，我们将解释如何将 PR 和 RG 系统地集成到预测性 FTTC（3）和（4）中，以及如何确定相关的最优参数。为了更好地描述各部分的功能，我们从 FTTC（3）和（4）中提取了三种 FTTC 策略，即无约束鲁棒 FTTC、基于 PR 的鲁棒预测 FTTC 和基于 PR 和 RG 的鲁棒预测 FTTC。下文将逐步给出具体的分析和设计条件。
+
+##### 无约束鲁棒 FTTC 设计
+
+控制率 $u_k^{un}=K_e(x_k-x_{r,k})+u_{r,k}-\hat{f}_k$ 。
+
+$\hat{f}_k$ 的估计通过公式 (1) 得到：$d_k=x_{k+1}-A(\theta_k)x_k-B(\theta_k)u_k=B(\theta_k)f_k+D(\theta_k)w_k$ ，
+
+那么 $B(\theta_k)f_k=d_k-D(\theta_k)w_k$  ，可以得到：
+$$
+f_k=H(\theta_k)(d_k-D(\theta_k)w_k)\\
+H(\theta_k)=(B^T(\theta_k)B(\theta_k))^{-1}B^T(\theta_k)
+$$
+$f_k$ 依赖下一时刻的状态和无法测量的扰动，所以可以把上一时刻的 $f_{k-1}$ 作为当前时刻的近似估计：
+
+![02-04](.\image\02-04.png)
+
+这种处理方式会带来一定的故障补偿误差。但可以通过假设 3 确定其边界：
+$$
+\begin{align}
+e_{f,k}&=f_k-\hat{f}_k\\
+	   &=f_k-(f_{k-1}+H(\theta_{k-1})D(\theta_{k-1})w_{k-1})\\
+	   &=\delta_{f,k}-H(\theta_{k-1})D(\theta_{k-1})w_{k-1}\\
+	   &\in F\oplus (-H(\theta_{k-1})D(\theta_{k-1}))W
+\end{align}
+$$
+将集合再度进行放大（超立方体）：
+
+![02-05](.\image\02-05.png)
+
+$|| H(\theta_{k-1})D(\theta_{k-1})\leq\mathcal{H}\mathcal{1}_{nh}\mathcal{D} ||$ ，$e_{f,k}\in F\oplus(-\mathcal{H}\mathcal{1}_{nh}\mathcal{D}W)$  。
+
+
+
+##### 预计调节鲁棒预测 FTTC 设计
