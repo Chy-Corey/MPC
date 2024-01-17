@@ -113,3 +113,21 @@ $|| H(\theta_{k-1})D(\theta_{k-1})\leq\mathcal{H}\mathcal{1}_{nh}\mathcal{D} ||$
 
 
 ##### 预计调节鲁棒预测 FTTC 设计
+
+根据上一节的无约束鲁棒 FTTC 设计，考虑preview regulator ，设计新的控制律：
+$$
+u_k^c=K_e(x_r-x_{r,k})+u_{r,k}-\hat{f}_k+c_k
+$$
+由于 $x_{r,k}=A(\theta_k)x_{r,k}+B(\theta_k)u_{r,k}$ ，所以：
+$$
+x_{k+1}-x_{r,k}=A(\theta_k)(x_k-x_{r,k})+B(\theta_k)(u_k^c+f_k-u_{r,k})+D(\theta_k)w_k
+$$
+代入 $u_k^c=K_e(x_r-x_{r,k})+u_{r,k}-\hat{f}_k+c_k$ ，$x_{r,k}=K_{xr}(\theta_k)r_{k+1}$ ，$c_k=K_c\vec{c}_k,r_{k+1}=C_r\vec{r}_{k+1}$：
+
+![02-06](.\image\02-06.png)
+
+ $c_k$ 是为了保证系统可解并满足约束，要满足这一点进行设计。
+
+**定义1：** 自治不变集，当 $K_c\vec{c}_k=0$ 时，存在集合 $S_{RPI}$ 是不变集。$S_{MRPI}$ 是最大不变集，包含了 $S_{RPI}$ 。
+
+**定义2：** 控制不变集，当 $K_c\vec{c}_k\neq0$ 时，存在集合 $S_{RCI}$ 是不变集，$S_{MRCI}$ 是最大不变集，包含了 $S_{RCI}$ 。
