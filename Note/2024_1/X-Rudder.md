@@ -4,8 +4,6 @@
 2. 纵向面建模，控制分配
 3. 针对轨迹跟踪设计
 4. 针对执行器故障的容错控制设计，如何进行故障检测
-5. reference governor
-6. 如何处理干扰，使系统具有鲁棒性
 
 
 
@@ -22,6 +20,8 @@
 3. 海洋调查（海底测绘等）
 
 ### 纵向面建模
+
+`Optimal robust trajectory tracking control of a X-rudder AUV with velocity  sensor failures and uncertainties`
 
 对于海底水下测绘或者零纵倾控制，需要对 X-AUV 的纵向面进行建模。
 
@@ -45,7 +45,7 @@ $τ_w$ 和 $τ_q$ 到四个执行器的映射为：
 
 ![03-05](.\image\03-05.png)
 
-得到运动学方程和动力学方程以后，就可以建立状态空间方程。
+
 
 <img src=".\image\03-06.png" alt="03-06" style="zoom:50%;" />
 
@@ -84,9 +84,11 @@ $$
 
 ### 滑膜控制
 
-[【控制理论】滑模控制最强解析-CSDN博客](https://blog.csdn.net/xiaohejiaoyiya/article/details/90271529)
+[【控制理论】滑模控制解析](https://blog.csdn.net/xiaohejiaoyiya/article/details/90271529)
 
 ### MPC AUV
+
+`Trajectory Tracking Control of an Autonomous Underwater Vehicle Using Lyapunov-Based Model Predictive Control`
 
 这篇文章所面向的AUV用于水平面的轨迹跟踪，与 `纵向面建模` 类似，首先建立水平面运动学方程：
 
@@ -110,19 +112,25 @@ $$
 
 ### 容错控制
 
+`X舵AUV控制分配优化与容错控制方法研究`
+
 #### 故障诊断和定位
 
-`X舵AUV控制分配优化与容错控制方法研究` 中使用 SVM 进行训练，得到正常情况和故障情况下的分类，用于故障诊断。诊断出故障后，通过让所有舵面归零的方式定位卡死舵。 
+使用 SVM 进行训练，得到正常情况和故障情况下的分类，用于故障诊断。诊断出故障后，通过让所有舵面归零的方式定位卡死舵。 
+
+<img src=".\image\03-16.png" alt="03-16" style="zoom:67%;" />
 
 #### 容错控制
 
 通过重新进行舵角分配来补偿卡舵。
 
+正常情况下：
+
 <img src=".\image\03-14.png" alt="03-14" style="zoom:50%;" />
 
-<img src=".\image\03-15.png" alt="03-15" style="zoom:67%;" />
+卡舵情况下：
+
+<img src=".\image\03-15.png" alt="03-15" style="zoom:50%;" />
 
 
-
-### Reference governor
 
