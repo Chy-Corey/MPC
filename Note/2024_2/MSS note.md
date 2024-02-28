@@ -90,5 +90,37 @@ GNC 的基本库和系统示例。该库包含：
 
 ## 一、AUV 模型
 
+### 纵向控制建模
+
+符号定义：$x,y,z$ 表示位置；$\phi,\theta,\psi$ 表示横滚角，俯仰角，方向角；$p,q,r$ 表示横滚角速度，俯仰角速度，方向角速度；$u,v,w$ 表示纵荡速度，横荡速度，垂荡速度。
+
+纵向面运动学方程：
+$$
+\dot{\eta} = R(\theta)\boldsymbol{v}\\
+\eta = [x,z,\theta]^T,\boldsymbol{v}=[u,v,w]\\
+R(\theta)=\begin{bmatrix}
+\cos{\theta}&-\sin{\theta}&0\\
+\sin{\theta}&\cos{\theta}&0\\
+0&0&1
+\end{bmatrix}
+$$
+动力学方程：
+$$
+M\dot{\boldsymbol{v}}+C(\boldsymbol{v})\boldsymbol{v}+D(\boldsymbol{v})\boldsymbol{v}+g(\eta)=\tau
+$$
+
+- $\tau=[F_u,F_v,F_w]^T$ ，表示推力，$\tau=Bu$。
+- $M=diag(M_{\dot{u}},M_{\dot{v}},M_{\dot{w}})$ ，表示惯性力矩阵。
+- $C(\boldsymbol{v})$ 表示科里奥利向心矩阵 ：$C(\boldsymbol{v})=\begin{bmatrix}0&0&-M_{\dot{v}}v\\0&0&M_{\dot{u}}u\\M_{\dot{v}}v&-M_{\dot{u}}u&0\end{bmatrix}$
+- $D(\boldsymbol{v})=diag(X_u,Y_v,N_w)+diag(D_u|u|,D_v|v|,D_w|w|)$ 表示阻力矩阵。
+- $g(\eta)$ 表示恢复力(restoring force)。
 
 
+
+令 $\boldsymbol{x}=[x,z,\theta,u,v,w]$ ，则根据运动学、动力学方程：
+$$
+\dot{\boldsymbol{x}}=\begin{bmatrix}
+R(\theta)\boldsymbol{v}\\
+M^{-1}(Bu-C\boldsymbol{v}-D\boldsymbol{v}-g)
+\end{bmatrix}
+$$
