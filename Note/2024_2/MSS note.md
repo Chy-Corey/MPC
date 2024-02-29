@@ -124,3 +124,23 @@ R(\theta)\boldsymbol{v}\\
 M^{-1}(Bu-C\boldsymbol{v}-D\boldsymbol{v}-g)
 \end{bmatrix}
 $$
+
+### 全自由度建模
+
+参考文献：`Prestero, Timothy. “Verification of a six-degree of freedom simulation model for the REMUS autonomous underwater vehicle.” (2001).`
+
+全自由度动力学方程：
+
+![02-04](.\image\02-04.png)
+
+可以通过将无关系数置零，得到纵向面模型：
+
+![02-05](.\image\02-05.jpg)
+
+纵向面模型：
+
+<img src=".\image\02-05.png" alt="02-05" style="zoom:67%;" />
+
+全自由度模型：
+
+<img src=".\image\02-06.png" alt="02-06" style="zoom:67%;" />

@@ -1,4 +1,4 @@
-function [xdot,U]= remus100Change(x,ui)
+function [xdot,U]= remus100Change2(x,ui)
 % Simulation algorithm for REMUS This code is based in:
 % Prestero, T., 2001. Verification of a six-degree of freedom simulation 
 % model for the REMUS autonomous underwater vehicle (Doctoral dissertation, 
@@ -43,14 +43,14 @@ function [xdot,U]= remus100Change(x,ui)
 
 % Get state variables
 u     = x(1); 
-v     = x(2); 
-w     = x(3); 
-p     = x(4); 
-q     = x(5); 
-r     = x(6);
-phi   = x(10); 
-theta = x(11); 
-psi   = x(12);
+v     = 0; 
+w     = x(2); 
+p     = 0; 
+q     = x(3); 
+r     = 0;
+phi   = 0; 
+theta = x(6); 
+psi   = 0;
 U=sqrt(u^2+v^2+w^2);
 if ui(3)<0
     ui(3)=0;
@@ -193,27 +193,21 @@ N = -(xg*W-xb*B)*cos(theta)*sin(phi) - (yg*W-yb*B)*sin(theta) ...
 FORCES = [X Y Z K M N]';
 
 % Accelerations Matrix (Prestero Thesis page 46)
-Amat = [(m - Xudot) 0              0               0             m*zg            -m*yg;
-        0           (m - Yvdot)    0               -m*zg         0               (m*xg - Yrdot);
-        0           0              (m - Zwdot)     m*yg          (-m*xg - Zqdot) 0;
-        0           -m*zg          m*yg            (Ixx - Kpdot) 0               0;
-        m*zg        0              (-m*xg - Mwdot) 0             (Iyy - Mqdot)   0;
-        -m*yg       (m*xg - Nvdot) 0               0             0               (Izz - Nrdot)];
+Amat = [(m - Xudot)  0               m*zg            ;
+        0            0               0               ;
+        0            (m - Zwdot)     (-m*xg - Zqdot) ;
+        0            m*yg            0               ;
+        m*zg         (-m*xg - Mwdot) (Iyy - Mqdot)   ;
+        -m*yg        0               0               ];
 
 % Inverse Mass Matrix
-Minv = inv(Amat);
+Minv = pinv(Amat);
 
 % Derivatives
 xdot = ...
     [Minv(1,1)*X + Minv(1,2)*Y + Minv(1,3)*Z + Minv(1,4)*K + Minv(1,5)*M + Minv(1,6)*N
      Minv(2,1)*X + Minv(2,2)*Y + Minv(2,3)*Z + Minv(2,4)*K + Minv(2,5)*M + Minv(2,6)*N
      Minv(3,1)*X + Minv(3,2)*Y + Minv(3,3)*Z + Minv(3,4)*K + Minv(3,5)*M + Minv(3,6)*N
-     Minv(4,1)*X + Minv(4,2)*Y + Minv(4,3)*Z + Minv(4,4)*K + Minv(4,5)*M + Minv(4,6)*N
-     Minv(5,1)*X + Minv(5,2)*Y + Minv(5,3)*Z + Minv(5,4)*K + Minv(5,5)*M + Minv(5,6)*N
-     Minv(6,1)*X + Minv(6,2)*Y + Minv(6,3)*Z + Minv(6,4)*K + Minv(6,5)*M + Minv(6,6)*N
      c3*c2*u + (c3*s2*s1-s3*c1)*v + (s3*s1+c3*c1*s2)*w
-     s3*c2*u + (c1*c3+s1*s2*s3)*v + (c1*s2*s3-c3*s1)*w
        -s2*u +            c2*s1*v +            c1*c2*w
-           p +            s1*t2*q +            c1*t2*r
-                             c1*q -               s1*r
-                          s1/c2*q +            c1/c2*r] ;
+                             c1*q -               s1*r] ;
