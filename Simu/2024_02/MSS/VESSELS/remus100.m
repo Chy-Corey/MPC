@@ -226,15 +226,33 @@ Y_r = -0.5 * rho * U_rh^2 * A_r * CL_delta_r * delta_r;
 % Stern-plane heave force 安定面的垂荡力
 Z_s = -0.5 * rho * U_rv^2 * A_s * CL_delta_s * delta_s;
 
+
+
 % Generalized propulsion force vector
 tau = zeros(6,1);                                
 tau(1) = (1-t_prop) * X_prop + X_r + X_s;
 tau(2) = Y_r;
-tau(3) = Z_s;
+tau(3) = Z_s;          % tau_w
 tau(4) = K_prop / 10;  % scaled down by a factor of 10 to match exp. results
-tau(5) = x_s * Z_s;
+tau(5) = x_s * Z_s;    % tau_q
 tau(6) = x_r * Y_r;
 
+% added
+usquare = nu_r(1)^2;
+Zuu1 = -3.4083;
+Zuu2 = -3.4083;
+Zuu3 = -3.4083;
+Zuu4 = -3.4083;
+Muu1 = -2.1744;
+Muu2 = -2.1744;
+Muu3 = -2.1744;
+Muu4 = -2.1744;
+Btau = [Muu1 Muu2 Muu3 Muu4] * usquare;
+Delta = pinv(Btau) * [tau(5)];
+
+
+tau(5) = Btau * Delta;
+tau(3) = [Zuu1 Zuu2 Zuu3 Zuu4] * usquare * Delta;
 % State-space model
 xdot = [ Dnu_c + M \ ...
             (tau + tau_liftdrag + tau_crossflow - C * nu_r - D * nu_r  - g)
