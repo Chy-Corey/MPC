@@ -1,4 +1,4 @@
-function [xdot,U]= remus100Change(x,ui)
+function [xdot,U, Delta]= remus100Change(x,ui)
 % Simulation algorithm for REMUS This code is based in:
 % Prestero, T., 2001. Verification of a six-degree of freedom simulation 
 % model for the REMUS autonomous underwater vehicle (Doctoral dissertation, 
@@ -122,11 +122,13 @@ Zuuds = -9.64; % Fin Lift Force
 xb = 0;%-6.11e-1;
 yb =  0;
 zb =  0;
-n=ui(3)/60*2*pi;
+n=ui(3)/60;
 % Propeller Terms
-Xprop =  1.569759e-4*n*abs(n);
+Xprop = 1026 * 0.14^4 * (... 
+        0.4566 * abs(n) * n + (0.1798-0.4566)/0.6632 * (0.944 * U/0.14) * abs(n) );
 Kpp   = -1.3e-1;  % Rolling resistance
-Kprop = -2.242e-05*n*abs(n);%-5.43e-1; % Propeller Torque
+Kprop = 1026 * 0.14^5 * (...
+        0.07 * abs(n) * n + (0.0312-0.07)/0.6632 * (0.944 * U/0.14) * abs(n) );%-5.43e-1; % Propeller Torque
 Kpdot = -7.04e-2; % Added mass
 
 % Cross flow drag and added mass terms
@@ -162,32 +164,47 @@ Zwdot = -3.55e1;  % Added mass
 Yrdot =  1.93;    % Added mass
 Nrdot = -4.88;    % Added mass
 
+
+% added
+usquare = u^2;
+Zuu1 = -3.4083;
+Zuu2 = -3.4083;
+Zuu3 = -3.4083;
+Zuu4 = -3.4083;
+Muu1 = -2.1744;
+Muu2 = -2.1744;
+Muu3 = -2.1744;
+Muu4 = -2.1744;
+Btau = [Zuu1 Zuu2 Zuu3 Zuu4;
+        Muu1 Muu2 Muu3 Muu4] * usquare;
+Delta = pinv(Btau) * [Zuuds*u^2*delta_s; Muuds*u^2*delta_s];
+tau = Btau * Delta;
 % Set total forces from equations of motion
 % ----------------------------------------------------- -------------------------
 X = -(W-B)*sin(theta) + Xuu*u*abs(u) + (Xwq-m)*w*q + (Xqq + m*xg)*q^2 ...
     + (Xvr+m)*v*r + (Xrr + m*xg)*r^2 -m*yg*p*q - m*zg*p*r ...
-    + ui(3) ;%Xprop
+    + Xprop;%Xprop
 
 Y = (W-B)*cos(theta)*sin(phi) + Yvv*v*abs(v) + Yrr*r*abs(r) + Yuv*u*v ...
     + (Ywp+m)*w*p + (Yur-m)*u*r - (m*zg)*q*r + (Ypq - m*xg)*p*q ...
-    ;%+ Yuudr*u^2*delta_r 
+    + Yuudr*u^2*delta_r ;%+ Yuudr*u^2*delta_r 
 
 Z = (W-B)*cos(theta)*cos(phi) + Zww*w*abs(w) + Zqq*q*abs(q)+ Zuw*u*w ...
     + (Zuq+m)*u*q + (Zvp-m)*v*p + (m*zg)*p^2 + (m*zg)*q^2 ...
-    + (Zrp - m*xg)*r*p  ;%+ Zuuds*u^2*delta_s
+    + (Zrp - m*xg)*r*p  + Zuuds*u^2*delta_s;%+ Zuuds*u^2*delta_s
 
 K = -(yg*W-yb*B)*cos(theta)*cos(phi) - (zg*W-zb*B)*cos(theta)*sin(phi) ...
-    + Kpp*p*abs(p) - (Izz- Iyy)*q*r - (m*zg)*w*p + (m*zg)*u*r  ;%+ Kprop
+    + Kpp*p*abs(p) - (Izz- Iyy)*q*r - (m*zg)*w*p + (m*zg)*u*r  + Kprop;%+ Kprop
 
 M = -(zg*W-zb*B)*sin(theta) - (xg*W-xb*B)*cos(theta)*cos(phi) + Mww*w*abs(w) ...
     + Mqq*q*abs(q) + (Mrp - (Ixx-Izz))*r*p + (m*zg)*v*r - (m*zg)*w*q ...
     + (Muq - m*xg)*u*q + Muw*u*w + (Mvp + m*xg)*v*p ...
-    + delta_s ;%Muuds*u^2*
+    + Muuds*u^2*delta_s ;%Muuds*u^2*
 
 N = -(xg*W-xb*B)*cos(theta)*sin(phi) - (yg*W-yb*B)*sin(theta) ...
     + Nvv*v*abs(v) + Nrr*r*abs(r) + Nuv*u*v ...
     + (Npq - (Iyy- Ixx))*p*q + (Nwp - m*xg)*w*p + (Nur + m*xg)*u*r ...
-    + delta_r ;%Nuudr*u^2*
+    + Nuudr*u^2*delta_r ;%Nuudr*u^2*
 
 
 FORCES = [X Y Z K M N]';
