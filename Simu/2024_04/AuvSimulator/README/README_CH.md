@@ -248,9 +248,9 @@ def dynamics(self, eta, nu, u_actual, u_control, sampleTime):
     return nu, u_actual
 ```
 
-<img src="E:\Library\硕士实验室\MPC\Simu\2024_04\AuvSimulator\image\01.png" alt="01" style="zoom:90%;" />
+<img src=".\image\01.png" alt="01" style="zoom:90%;" />
 
-
+<img src=".\image\02.png" alt="02" style="zoom:60%;" />
 
 
 
