@@ -264,6 +264,7 @@ class remus100:
         # Commands and actual control signals
         delta_r_c = u_control[0]  # commanded tail rudder (rad)
         delta_s_c = u_control[1]  # commanded stern plane (rad)
+
         n_c = u_control[2]  # commanded propeller revolution (rpm)
 
         delta_r = u_actual[0]  # actual tail rudder (rad)
