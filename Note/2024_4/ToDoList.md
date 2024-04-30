@@ -9,3 +9,13 @@
 #### 2024/4/18
 
 **Idea**： reference management & 容错控制，使用 MPC ，考虑 ref management 在避碰、容错场景下的性能提升。
+
+
+
+#### 2024/4/23
+
+reference governor 在 AUV 的容错控制上有什么性能提升？在什么场景下可以体现？
+
+可以把 reference governor 和 piecewise 对比。
+
+Rossiter 的 reference preview
