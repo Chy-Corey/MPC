@@ -20,37 +20,37 @@
 
 离散时域模型：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-01.png" alt="01-01" style="zoom:80%;" />
+<img src=".\image\01-01.png" alt="01-01" style="zoom:80%;" />
 
 控制目标：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-02.png" alt="01-02" style="zoom:80%;" />
+<img src=".\image\01-02.png" alt="01-02" style="zoom:80%;" />
 
 考虑系统约束以及扰动，对稳态值的要求如下：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-03.png" alt="01-03" style="zoom:80%;" />
+<img src=".\image\01-03.png" alt="01-03" style="zoom:80%;" />
 
 故障情况下，或者扰动 $d_k$ 较大时，很可能出现（3）式中约束和等式无法同时满足的情况，此时可以通过求解优化问题得到最优解：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-04.png" alt="01-04" style="zoom:80%;" />
+<img src=".\image\01-04.png" alt="01-04" style="zoom:80%;" />
 
 通过求解公式（4），在每个采样瞬间解决这个问题，就能得到与预期输出目标相对应的稳态变量。通过求解每对 $(r_{ss}, d_k)$ ，可以确定可实现的稳态和相关输出的完整集合。然而，该集合的构建在数值上代价高昂，而且实际使用时只需要获得该集合边界的近似值，根本不需要计算出完整的集合（这也证明了数值计算代价太高）。为了提供一个更好、更实用的可实现集合，该文建议使用**投影算法**。
 
 多面体是有限个封闭半空间的交集 ：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-05.png" alt="01-05" style="zoom:80%;" />
+<img src=".\image\01-05.png" alt="01-05" style="zoom:80%;" />
 
 给定一个多面体 $P\sub V\times Y$，其中 V 和 Y 都是子空间，P 在 V 上的投影为：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-06.png" alt="01-06" style="zoom:80%;" />
+<img src=".\image\01-06.png" alt="01-06" style="zoom:80%;" />
 
 而 P 在向量 $r \in R_p$ 处的切片（slice）定义为：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-07.png" alt="01-07" style="zoom:80%;" />
+<img src=".\image\01-07.png" alt="01-07" style="zoom:80%;" />
 
 这两个定义的图解：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-08.png" alt="01-08" style="zoom:60%;" />
+<img src=".\image\01-08.png" alt="01-08" style="zoom:60%;" />
 
 简单来说，**投影会降维，而切片不会降维**（将某个变量定位固定值）。
 
@@ -58,11 +58,11 @@
 
 通过引入任意小的公差向量 $\epsilon_x$ 和 $\epsilon_z$，状态空间方程和目标方程所代表的等式约束可以转换为不等式约束：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-09.png" alt="01-09" style="zoom:80%;" />
+<img src=".\image\01-09.png" alt="01-09" style="zoom:80%;" />
 
 那么就可以用一个集合来表示：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-10.png" alt="01-10" style="zoom:80%;" />
+<img src=".\image\01-10.png" alt="01-10" style="zoom:80%;" />
 
 假定扰动可通过某个观测器获得。因此，通过对估计的干扰值进行**切片**运算，就可以轻松计算出 $r_{ss}$ 的极限值（因为有降维）。切片运算**简化了线性不等式**，当某些变量先验已知时，线性不等式定义了一个多面体。因此，切片操作会导致多面体的维度降低。投影算法在实时应用中限制于低阶多面体。不过，通过假设不同的故障组合情况会产生不同的矢量 $k_{ss}$，而每个矢量的 $u_{max}$ 和 $u_{min}$ 值都不同，离线确定可操控性多面体似乎很有用。对估算出的干扰矢量进行切片是一个非常简单的操作，可以实时执行。
 
@@ -81,7 +81,7 @@
 
 图 2 显示了解决方案的整体结构。离散控制器（由虚线围成）有三个主要功能：可行目标计算、MPC 优化器和线性观测器。假定故障检测和隔离系统（FDI）可为目标计算和 MPC 方案提供有关执行器状态的正确信息。
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-11.png" alt="01-11" style="zoom:80%;" />
+<img src=".\image\01-11.png" alt="01-11" style="zoom:80%;" />
 
 可行目标计算子系统计算稳定状态下的状态和控制矢量（xss 和 uss），这是对静态可接受参考信号 rss 进行无偏移跟踪所必需的。该计算考虑了**执行器的限制和约束优化问题的可行性**。
 
@@ -91,25 +91,25 @@
 
 控制律：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-12.png" alt="01-12" style="zoom:80%;" />
+<img src=".\image\01-12.png" alt="01-12" style="zoom:80%;" />
 
 MPC 计算的是 $c_j$ ，$K_d$ 是固定的。
 
 假设稳态值（xss,uss）固定，那么将状态向量增广，并将控制律代入系统模型：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-13.png" alt="01-13" style="zoom:80%;" />
+<img src=".\image\01-13.png" alt="01-13" style="zoom:80%;" />
 
 对应的约束：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-14.png" alt="01-14" style="zoom:80%;" />
+<img src=".\image\01-14.png" alt="01-14" style="zoom:80%;" />
 
 根据参考文献[4]可以计算出不变集，根据不变集可以计算出终端约束 $X_N$ 。
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-15.png" alt="01-15" style="zoom:80%;" />
+<img src=".\image\01-15.png" alt="01-15" style="zoom:80%;" />
 
 终端约束是为了保证 MPC 有可行解，那么只要让给定的稳态目标 $x_{ss}$ 和 $u_{ss}$ 在终端约束中即可：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_4\image\01-16.png" alt="01-16" style="zoom:80%;" />
+<img src=".\image\01-16.png" alt="01-16" style="zoom:80%;" />
 
 ### 总结
 
