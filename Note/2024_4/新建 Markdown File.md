@@ -4,7 +4,7 @@
 
 - 第一步：写出稳态方程
 
-  ![19](E:\Note\MPC\Note\2023_12\image\19.png)
+  ![19](..\2023_12\image\19.png)
 
   该方程有多个解，令 $z_s=[x_s^T\ \ \ \ u_s^T]^T$ ，方程组 $[A-I\ \ \ \ B]\ z_s=0$ 的解为 $[A-I\ \ \ \ B]$ 的零空间，对其SVD分解后就是 $R(V_2)$ 。直接令 $M_\theta = V_2$ ，参数 $\theta \in R^{n_{\theta}}$ ，那么 $R(V_2)$ 可以表示为 $M_{\theta}\theta$ ，即 $z_s=M_{\theta}\theta$ 。
 
@@ -60,9 +60,9 @@
 
   `Linear systems with state and control constraints` 中的定理 5.1 ：
 
-  ![21](E:\Note\MPC\Note\2023_12\image\21.png)
+  ![21](..\2023_12\image\21.png)
 
-  ![22](E:\Note\MPC\Note\2023_12\image\22.png)
+  ![22](..\2023_12\image\22.png)
 
   $O_{\infty}(A,\hat{C},Y(\epsilon)\times Y)$ 可有限决定。
 
@@ -74,11 +74,11 @@
 
 成本函数：
 
-![23](E:\Note\MPC\Note\2023_12\image\23.png)
+![23](..\2023_12\image\23.png)
 
 优化问题：
 
-![24](E:\Note\MPC\Note\2023_12\image\24.png)
+![24](..\2023_12\image\24.png)
 
 其中 $\hat{x}_s$ 是人工指定的目标稳态。与标准 MPC 不同的是，惩罚了人工稳态和计算得到的稳态的偏差，以及控制输入和控制稳定控制输入的偏差；此外还增加了一个终端约束用于惩罚人工稳态和计算得到的稳态的偏差。
 
@@ -90,11 +90,11 @@
 
 离散时域模型：
 
-<img src="E:\Note\MPC\Note\2024_4\image\01-01.png" alt="01-01" style="zoom:80%;" />
+<img src="..\2024_4\image\01-01.png" alt="01-01" style="zoom:80%;" />
 
 控制目标：
 
-<img src="E:\Note\MPC\Note\2024_4\image\01-02.png" alt="01-02" style="zoom:80%;" />
+<img src="..\2024_4\image\01-02.png" alt="01-02" style="zoom:80%;" />
 
 考虑系统约束以及扰动，对稳态值的要求如下：
 
@@ -104,11 +104,11 @@
 
 通过引入任意小的公差向量 $\epsilon_x$ 和 $\epsilon_z$，状态空间方程和目标方程所代表的等式约束可以转换为不等式约束：
 
-<img src="E:\Note\MPC\Note\2024_4\image\01-09.png" alt="01-09" style="zoom:80%;" />
+<img src="..\2024_4\image\01-09.png" alt="01-09" style="zoom:80%;" />
 
 那么就可以用一个集合来表示：
 
-<img src="E:\Note\MPC\Note\2024_4\image\01-10.png" alt="01-10" style="zoom:80%;" />
+<img src="..\2024_4\image\01-10.png" alt="01-10" style="zoom:80%;" />
 
 假定扰动可通过某个观测器获得。因此，通过对估计的干扰值进行**切片**运算，就可以轻松计算出 $r_{ss}$ 的极限值（因为有降维）。切片运算**简化了线性不等式**，当某些变量先验已知时，线性不等式定义了一个多面体。因此，切片操作会导致多面体的维度降低。投影算法在实时应用中限制于低阶多面体。不过，通过假设不同的故障组合情况会产生不同的矢量 $k_{ss}$，而每个矢量的 $u_{max}$ 和 $u_{min}$ 值都不同，离线确定可操控性多面体似乎很有用。对估算出的干扰矢量进行切片是一个非常简单的操作，可以实时执行。
 
@@ -120,21 +120,21 @@
 
 控制律：
 
-<img src="E:\Note\MPC\Note\2024_4\image\01-12.png" alt="01-12" style="zoom:80%;" />
+<img src="..\2024_4\image\01-12.png" alt="01-12" style="zoom:80%;" />
 
 MPC 计算的是 $c_j$ ，$K_d$ 是固定的。
 
 假设稳态值（xss,uss）固定，那么将状态向量增广，并将控制律代入系统模型：
 
-<img src="E:\Note\MPC\Note\2024_4\image\01-13.png" alt="01-13" style="zoom:80%;" />
+<img src="..\2024_4\image\01-13.png" alt="01-13" style="zoom:80%;" />
 
 对应的约束：
 
-<img src="E:\Note\MPC\Note\2024_4\image\01-14.png" alt="01-14" style="zoom:80%;" />
+<img src="..\2024_4\image\01-14.png" alt="01-14" style="zoom:80%;" />
 
 根据参考文献[4]可以计算出不变集，根据不变集可以计算出终端约束 $X_N$ 。
 
-<img src="E:\Note\MPC\Note\2024_4\image\01-15.png" alt="01-15" style="zoom:80%;" />
+<img src="..\2024_4\image\01-15.png" alt="01-15" style="zoom:80%;" />
 
 终端约束是为了保证 MPC 有可行解，那么只要让给定的稳态目标 $x_{ss}$ 和 $u_{ss}$ 在终端约束中即可：
 
