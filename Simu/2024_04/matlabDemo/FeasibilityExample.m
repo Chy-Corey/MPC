@@ -1,9 +1,6 @@
 function FeasibilityExample
 % feasibility study on double integrator example
 % 
-% Thomas Besselmann, 18.08.08
-% Francesco Borrelli July 05 2009
-% M. Herceg, ETH Zurich, 2014
 %
 % requires MPT3
 
