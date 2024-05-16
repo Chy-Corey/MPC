@@ -59,12 +59,13 @@ def simulate(n, sample_time, vehicle):
     # Initial state vectors
     eta = np.array([0, 0, 0, 0, 0, 0], float)  # position/attitude, user editable；x，y，z，phi，theta，psi
     nu = vehicle.nu  # velocity, defined by vehicle class 速度，eta 的导数
+    nu_simu = nu
     u_actual = vehicle.u_actual  # actual inputs, defined by vehicle class，控制输入，阶数由 vehicle 决定
 
     # Initialization of table used to store the simulation data
     # 初始化仿真数据维数，自由度 × 2 表示状态和状态的导数，控制输入 × 2 表示控制输入和执行器输出
     simData = np.empty([0, 2 * DOF + 2 * vehicle.dimU], float)
-
+    model_simData = np.empty([0, 6], float)
     # Simulator for-loop
     for i in range(0, n + 1):
 
@@ -86,11 +87,17 @@ def simulate(n, sample_time, vehicle):
         signals = np.append(np.append(np.append(eta, nu), u_control), u_actual)
         simData = np.vstack([simData, signals])
 
+        model_simData = np.vstack([model_simData, nu_simu])
+        nu_simu = nu.copy()
+        u_actual_simu = u_actual.copy()
         # Propagate vehicle and attitude dynamics
         [nu, u_actual] = vehicle.dynamics(eta, nu, u_actual, u_control, sample_time)
+
+        [nu_simu, u_actual_simu] = vehicle.stateModel_6DOF(eta, nu_simu, u_actual_simu, u_control, sample_time)
+
         eta = attitudeEuler(eta, nu, sample_time)
 
     # Store simulation time vector
     simTime = np.arange(start=0, stop=t + sample_time, step=sample_time)[:, None]
 
-    return simTime, simData
+    return simTime, simData, model_simData

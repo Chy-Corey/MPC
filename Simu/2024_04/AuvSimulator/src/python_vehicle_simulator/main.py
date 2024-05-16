@@ -49,7 +49,7 @@ no = input("Please enter a vehicle no.: ")
 
 match no:  # The match statement requires Python >= 3.10
     case '1':
-        vehicle = remus100('depthHeadingAutopilot', 30, 50, 1525, 0.5, 170)
+        vehicle = remus100('depthHeadingAutopilot', 30, 50, 1525, 0, 0)
     case '9':
         vehicle = remus100_raw('depthHeadingAutopilot', 30, 50, 1525, 0.5, 170)
     case _:
@@ -62,11 +62,12 @@ printVehicleinfo(vehicle, sampleTime, N)
 # Main simulation loop 
 ###############################################################################
 def main():
-    [simTime, simData] = simulate(N, sampleTime, vehicle)
+    [simTime, simData, model_SimData] = simulate(N, sampleTime, vehicle)
 
     plotVehicleStates(simTime, simData, 1)
     plotControls(simTime, simData, vehicle, 2)
     plot3D(simData, numDataPoints, FPS, filename, 3)
+    plotModelStates(simTime, simData, model_SimData, 4)
 
     """ Ucomment the line below for 3D animation in the web browswer. 
     Alternatively, open the animated GIF file manually in your preferred browser. """

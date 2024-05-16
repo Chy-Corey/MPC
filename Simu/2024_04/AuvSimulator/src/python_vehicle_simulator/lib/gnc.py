@@ -150,7 +150,7 @@ def m2c(M, nu):
 
     M = 0.5 * (M + M.T)  # systematization of the inertia matrix
 
-    if (len(nu) == 6):  # 6-DOF model
+    if len(nu) == 6:  # 6-DOF model
 
         M11 = M[0:3, 0:3]
         M12 = M[0:3, 3:6]
