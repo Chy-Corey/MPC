@@ -18,7 +18,7 @@ from src.python_vehicle_simulator.lib import *
 
 # Simulation parameters: 
 sampleTime = 0.02  # 采样时间 [秒/s]
-N = 50000  # 采样数量
+N = 5000  # 采样数量
 
 # 3D plot and animation parameters where browser = {firefox,chrome,safari,etc.}
 numDataPoints = 50  # number of 3D data points

@@ -50,6 +50,7 @@ import math
 import sys
 from src.python_vehicle_simulator.lib.control import integralSMC
 from src.python_vehicle_simulator.lib.gnc import crossFlowDrag, forceLiftDrag, Hmtrx, m2c, gvect, ssa
+import do_mpc
 
 
 # Class Vehicle
@@ -143,8 +144,6 @@ class remus100:
         self.r_bb = np.array([0, 0, 0], float)  # CB w.r.t. to the CO
 
         # Parasitic drag coefficient CD_0, i.e. zero lift and alpha = 0
-        # F_drag = 0.5 * rho * Cd * (pi * b^2)
-        # F_drag = 0.5 * rho * CD_0 * S
         Cd = 0.42  # from Allen et al. (2000)
         self.CD_0 = Cd * math.pi * b ** 2 / self.S
 
@@ -243,6 +242,10 @@ class remus100:
         self.z_int = 0  # heave position integral state
         self.z_d = 0  # desired position, LP filter initial state
         self.theta_int = 0  # pitch angle integral state
+
+        # MPC
+        self.Np = 60  # 预测步长
+        self.Nc = 60  # 控制步长
 
     def dynamics(self, eta, nu, u_actual, u_control, sampleTime):
         """
@@ -422,7 +425,7 @@ class remus100:
         # Propeller coeffs. KT and KQ are computed as a function of advance no.
         # Ja = Va/(n*D_prop) where Va = (1-w)*U = 0.944 * U; Allen et al. (2000)
         D_prop = 0.14  # propeller diameter corresponding to 5.5 inches
-        t_prop = 0.1  # thrust deduction number
+        t_prop = 0.0  # thrust deduction number
         n_rps = n / 60  # propeller revolution (rps)
         Va = 0.944 * U  # advance speed (m/s)
 
@@ -488,8 +491,8 @@ class remus100:
         D[0][0] = D[0][0] * math.exp(-3 * U_r)  # vanish at high speed where quadratic
         D[1][1] = D[1][1] * math.exp(-3 * U_r)  # drag and lift forces dominates
 
-        tau_liftdrag = forceLiftDrag(self.diam, self.S, self.CD_0, alpha, U_r)
-        tau_crossflow = crossFlowDrag(self.L, self.diam, self.diam, nu_r)
+        # tau_liftdrag = forceLiftDrag(self.diam, self.S, self.CD_0, alpha, U_r)
+        # tau_crossflow = crossFlowDrag(self.L, self.diam, self.diam, nu_r)
 
         # Restoring forces and moments
         g = gvect(self.W, self.B, eta[4], eta[3], self.r_bg, self.r_bb)
@@ -510,7 +513,7 @@ class remus100:
 
         # Generalized force vector
         tau = np.array([
-            (1 - t_prop) * X_prop + X_r + X_s,
+            (1 - t_prop) * X_prop,  # + X_r + X_s,
             Y_r,
             Z_s,
             K_prop / 10,  # scaled down by a factor of 10 to match exp. results
@@ -521,7 +524,8 @@ class remus100:
         # AUV dynamics
         # tau_sum = tau + tau_liftdrag + tau_crossflow - np.matmul(C + D, nu_r) - g
         # nu_dot = Dnu_c + np.matmul(self.Minv, tau_sum)
-        tau_sum = tau + tau_liftdrag + tau_crossflow
+        # tau_sum = tau + tau_liftdrag + tau_crossflow
+        tau_sum = tau
         nu_dot = -np.matmul(np.matmul(self.Minv, C + D), nu_r) + np.matmul(self.Minv, tau_sum) - np.matmul(self.Minv,
                                                                                                            g) + Dnu_c
 
@@ -626,4 +630,129 @@ class remus100:
 
         return u_control
 
+    def MPC_6DOF(self, eta, nu, u_actual, sampleTime):
+        # u_actual：当前时刻的控制输入
+        # Current velocities
+        u_c = self.V_c * math.cos(self.beta_c - eta[5])  # current surge velocity
+        v_c = self.V_c * math.sin(self.beta_c - eta[5])  # current sway velocity
 
+        nu_c = np.array([u_c, v_c, 0, 0, 0, 0], float)  # current velocity
+        Dnu_c = np.array([nu[5] * v_c, -nu[5] * u_c, 0, 0, 0, 0], float)  # derivative
+        nu_r = nu - nu_c  # relative velocity
+
+        U = math.sqrt(nu[0] ** 2 + nu[1] ** 2 + nu[2] ** 2)  # vehicle speed
+        U_r = math.sqrt(nu_r[0] ** 2 + nu_r[1] ** 2 + nu_r[2] ** 2)  # relative speed
+
+        # Commands and actual control signals
+        delta_r = u_actual[0]  # actual tail rudder (rad)
+        delta_s = u_actual[1]  # actual stern plane (rad)
+        n = u_actual[2]  # actual propeller revolution (rpm)
+
+        # Propeller coeffs. KT and KQ are computed as a function of advance no.
+        # Ja = Va/(n*D_prop) where Va = (1-w)*U = 0.944 * U; Allen et al. (2000)
+        D_prop = 0.14  # propeller diameter corresponding to 5.5 inches
+        t_prop = 0.0  # thrust deduction number
+        n_rps = n / 60  # propeller revolution (rps)
+        Va = 0.944 * U  # advance speed (m/s)
+
+        # Ja_max = 0.944 * 2.5 / (0.14 * 1525/60) = 0.6632
+        Ja_max = 0.6632
+
+        # Single-screw propeller with 3 blades and blade-area ratio = 0.718.
+        # Coffes. are computed using the Matlab MSS toolbox:
+        # >> [KT_0, KQ_0] = wageningen(0,1,0.718,3)
+        KT_0 = 0.4566
+        KQ_0 = 0.0700
+        # >> [KT_max, KQ_max] = wageningen(0.6632,1,0.718,3)
+        KT_max = 0.1798
+        KQ_max = 0.0312
+
+        # Propeller thrust and propeller-induced roll moment
+        # Linear approximations for positive Ja values
+        # KT ~= KT_0 + (KT_max-KT_0)/Ja_max * Ja
+        # KQ ~= KQ_0 + (KQ_max-KQ_0)/Ja_max * Ja
+
+        if n_rps > 0:  # forward thrust
+
+            X_prop = self.rho * pow(D_prop, 4) * (
+                    KT_0 * abs(n_rps) * n_rps + (KT_max - KT_0) / Ja_max *
+                    (Va / D_prop) * abs(n_rps))
+            K_prop = self.rho * pow(D_prop, 5) * (
+                    KQ_0 * abs(n_rps) * n_rps + (KQ_max - KQ_0) / Ja_max *
+                    (Va / D_prop) * abs(n_rps))
+
+        else:  # reverse thrust (braking)
+
+            X_prop = self.rho * pow(D_prop, 4) * KT_0 * abs(n_rps) * n_rps
+            K_prop = self.rho * pow(D_prop, 5) * KQ_0 * abs(n_rps) * n_rps
+
+            # Rigi-body/added mass Coriolis/centripetal matrices expressed in the CO
+        CRB = m2c(self.MRB, nu_r)
+        CA = m2c(self.MA, nu_r)
+
+        # CA-terms in roll, pitch and yaw can destabilize the model if quadratic
+        # rotational damping is missing. These terms are assumed to be zero
+        CA[4][0] = 0  # Quadratic velocity terms due to pitching
+        CA[0][4] = 0
+        CA[4][2] = 0
+        CA[2][4] = 0
+        CA[5][0] = 0  # Munk moment in yaw
+        CA[0][5] = 0
+        CA[5][1] = 0
+        CA[1][5] = 0
+
+        C = CRB + CA
+
+        # Dissipative forces and moments
+        D = np.diag([
+            self.M[0][0] / self.T_surge,
+            self.M[1][1] / self.T_sway,
+            self.M[2][2] / self.T_heave,
+            self.M[3][3] * 2 * self.zeta_roll * self.w_roll,
+            self.M[4][4] * 2 * self.zeta_pitch * self.w_pitch,
+            self.M[5][5] / self.T_yaw
+        ])
+
+        # Linear surge and sway damping
+        D[0][0] = D[0][0] * math.exp(-3 * U_r)  # vanish at high speed where quadratic
+        D[1][1] = D[1][1] * math.exp(-3 * U_r)  # drag and lift forces dominates
+
+        # tau_liftdrag = forceLiftDrag(self.diam, self.S, self.CD_0, alpha, U_r)
+        # tau_crossflow = crossFlowDrag(self.L, self.diam, self.diam, nu_r)
+
+        # Restoring forces and moments
+        g = gvect(self.W, self.B, eta[4], eta[3], self.r_bg, self.r_bb)
+
+        # Horizontal- and vertical-plane relative speed
+        U_rh = math.sqrt(nu_r[0] ** 2 + nu_r[1] ** 2)
+        U_rv = math.sqrt(nu_r[0] ** 2 + nu_r[2] ** 2)
+
+        # Rudder sway force
+        Y_r = -0.5 * self.rho * U_rh ** 2 * self.A_r * self.CL_delta_r * delta_r
+
+        # Stern-plane heave force
+        Z_s = -0.5 * self.rho * U_rv ** 2 * self.A_s * self.CL_delta_s * delta_s
+
+        # Generalized force vector
+        tau = np.array([
+            (1 - t_prop) * X_prop,  # + X_r + X_s,
+            Y_r,
+            Z_s,
+            K_prop / 10,  # scaled down by a factor of 10 to match exp. results
+            self.x_s * Z_s,
+            self.x_r * Y_r
+        ], float)
+
+        # AUV dynamics
+        # tau_sum = tau + tau_liftdrag + tau_crossflow - np.matmul(C + D, nu_r) - g
+        # nu_dot = Dnu_c + np.matmul(self.Minv, tau_sum)
+        # tau_sum = tau + tau_liftdrag + tau_crossflow
+        tau_sum = tau
+
+        mpc_A = -np.matmul(self.Minv, C + D)
+        nu_dot = -np.matmul(np.matmul(self.Minv, C + D), nu_r) + np.matmul(self.Minv, tau_sum) - np.matmul(self.Minv,
+                                                                                                           g) + Dnu_c
+        # Forward Euler integration [k+1]
+        nu += sampleTime * nu_dot
+
+        return nu, u_actual
