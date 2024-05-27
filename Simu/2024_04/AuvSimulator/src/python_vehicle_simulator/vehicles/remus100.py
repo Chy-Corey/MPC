@@ -50,7 +50,8 @@ import math
 import sys
 from src.python_vehicle_simulator.lib.control import integralSMC
 from src.python_vehicle_simulator.lib.gnc import crossFlowDrag, forceLiftDrag, Hmtrx, m2c, gvect, ssa
-import do_mpc
+import casadi as ca
+import time
 
 
 # Class Vehicle
@@ -92,6 +93,12 @@ class remus100:
                     + ", psi_d = "
                     + str(r_psi)
                     + " deg"
+            )
+
+        elif controlSystem == "mpcDepthControl":
+            self.controlDescription = (
+                    "Depth autopilots, z_d = "
+                    + str(r_z)
             )
 
         else:
@@ -140,6 +147,7 @@ class remus100:
         self.S = 0.7 * self.L * self.diam  # S = 70% of rectangle L * diam
         a = self.L / 2  # semi-axes
         b = self.diam / 2
+        # self.r_bg = np.array([0, 0, 0.02], float)  # CG w.r.t. to the CO
         self.r_bg = np.array([0, 0, 0.02], float)  # CG w.r.t. to the CO
         self.r_bb = np.array([0, 0, 0], float)  # CB w.r.t. to the CO
 
@@ -397,7 +405,6 @@ class remus100:
             n = np.sign(n) * self.nMax
 
         u_actual = np.array([delta_r, delta_s, n], float)
-
         return nu, u_actual
 
     def stateModel_6DOF(self, eta, nu, u_actual, u_control, sampleTime):
@@ -528,7 +535,6 @@ class remus100:
         tau_sum = tau
         nu_dot = -np.matmul(np.matmul(self.Minv, C + D), nu_r) + np.matmul(self.Minv, tau_sum) - np.matmul(self.Minv,
                                                                                                            g) + Dnu_c
-
         # Actuator dynamics
         delta_r_dot = (delta_r_c - delta_r) / self.T_delta
         delta_s_dot = (delta_s_c - delta_s) / self.T_delta
@@ -630,22 +636,20 @@ class remus100:
 
         return u_control
 
-    def MPC_6DOF(self, eta, nu, u_actual, sampleTime):
+    def MPC_6DOF(self, eta, nu, sampleTime, u_actual, pre_step):
+
         # u_actual：当前时刻的控制输入
         # Current velocities
         u_c = self.V_c * math.cos(self.beta_c - eta[5])  # current surge velocity
         v_c = self.V_c * math.sin(self.beta_c - eta[5])  # current sway velocity
 
         nu_c = np.array([u_c, v_c, 0, 0, 0, 0], float)  # current velocity
-        Dnu_c = np.array([nu[5] * v_c, -nu[5] * u_c, 0, 0, 0, 0], float)  # derivative
         nu_r = nu - nu_c  # relative velocity
 
         U = math.sqrt(nu[0] ** 2 + nu[1] ** 2 + nu[2] ** 2)  # vehicle speed
         U_r = math.sqrt(nu_r[0] ** 2 + nu_r[1] ** 2 + nu_r[2] ** 2)  # relative speed
 
         # Commands and actual control signals
-        delta_r = u_actual[0]  # actual tail rudder (rad)
-        delta_s = u_actual[1]  # actual stern plane (rad)
         n = u_actual[2]  # actual propeller revolution (rpm)
 
         # Propeller coeffs. KT and KQ are computed as a function of advance no.
@@ -672,21 +676,7 @@ class remus100:
         # KT ~= KT_0 + (KT_max-KT_0)/Ja_max * Ja
         # KQ ~= KQ_0 + (KQ_max-KQ_0)/Ja_max * Ja
 
-        if n_rps > 0:  # forward thrust
-
-            X_prop = self.rho * pow(D_prop, 4) * (
-                    KT_0 * abs(n_rps) * n_rps + (KT_max - KT_0) / Ja_max *
-                    (Va / D_prop) * abs(n_rps))
-            K_prop = self.rho * pow(D_prop, 5) * (
-                    KQ_0 * abs(n_rps) * n_rps + (KQ_max - KQ_0) / Ja_max *
-                    (Va / D_prop) * abs(n_rps))
-
-        else:  # reverse thrust (braking)
-
-            X_prop = self.rho * pow(D_prop, 4) * KT_0 * abs(n_rps) * n_rps
-            K_prop = self.rho * pow(D_prop, 5) * KQ_0 * abs(n_rps) * n_rps
-
-            # Rigi-body/added mass Coriolis/centripetal matrices expressed in the CO
+        # Rigi-body/added mass Coriolis/centripetal matrices expressed in the CO
         CRB = m2c(self.MRB, nu_r)
         CA = m2c(self.MA, nu_r)
 
@@ -727,32 +717,94 @@ class remus100:
         U_rh = math.sqrt(nu_r[0] ** 2 + nu_r[1] ** 2)
         U_rv = math.sqrt(nu_r[0] ** 2 + nu_r[2] ** 2)
 
-        # Rudder sway force
-        Y_r = -0.5 * self.rho * U_rh ** 2 * self.A_r * self.CL_delta_r * delta_r
+        mpc_A = np.array(-np.matmul(self.Minv, C + D))
+        mpc_B_rhs = np.array([
+            [0, 0, (1 - t_prop) * self.rho * pow(D_prop, 4) * (
+                    KT_0 * abs(1525 / 60) + (KT_max - KT_0) / Ja_max * (Va / D_prop)) / 60],
+            [-0.5 * self.rho * U_rh ** 2 * self.A_r * self.CL_delta_r, 0, 0],
+            [0, -0.5 * self.rho * U_rv ** 2 * self.A_s * self.CL_delta_s, 0],
+            [0, 0,
+             self.rho * pow(D_prop, 5) * (KQ_0 * abs(1525 / 60) + (KQ_max - KQ_0) / Ja_max * (Va / D_prop)) / 600],
+            [0, self.x_s * -0.5 * self.rho * U_rv ** 2 * self.A_s * self.CL_delta_s, 0],
+            [self.x_r * -0.5 * self.rho * U_rh ** 2 * self.A_r * self.CL_delta_r, 0, 0]
+        ])
+        mpc_B = -np.matmul(self.Minv, mpc_B_rhs)
+        # 常数项
+        mpc_I = -np.matmul(self.Minv, g)
+        self.z_d = math.exp(-sampleTime * self.wn_d_z) * self.z_d \
+                   + (1 - math.exp(-sampleTime * self.wn_d_z)) * self.ref_z
+        delta_Z = (self.z_d - eta[2]) / 10
 
-        # Stern-plane heave force
-        Z_s = -0.5 * self.rho * U_rv ** 2 * self.A_s * self.CL_delta_s * delta_s
+        mpc_states = ca.SX.sym('x', 6)
+        n_states = mpc_states.size()[0]
+        mpc_controls = ca.SX.sym('u', 3)
+        n_controls = mpc_controls.size()[0]
+        mpc_rhs = (mpc_A @ mpc_states) + (mpc_B @ mpc_controls) + mpc_I
+        f = ca.Function('f', [mpc_states, mpc_controls], [mpc_rhs], ['system_state', 'control_input'], ['rhs'])
 
-        # Generalized force vector
-        tau = np.array([
-            (1 - t_prop) * X_prop,  # + X_r + X_s,
-            Y_r,
-            Z_s,
-            K_prop / 10,  # scaled down by a factor of 10 to match exp. results
-            self.x_s * Z_s,
-            self.x_r * Y_r
-        ], float)
+        U = ca.SX.sym('U', n_controls, pre_step)
+        X = ca.SX.sym('X', n_states, pre_step + 1)
+        P = ca.SX.sym('P', n_states + n_states)
 
-        # AUV dynamics
-        # tau_sum = tau + tau_liftdrag + tau_crossflow - np.matmul(C + D, nu_r) - g
-        # nu_dot = Dnu_c + np.matmul(self.Minv, tau_sum)
-        # tau_sum = tau + tau_liftdrag + tau_crossflow
-        tau_sum = tau
+        X[:, 0] = P[:6]
 
-        mpc_A = -np.matmul(self.Minv, C + D)
-        nu_dot = -np.matmul(np.matmul(self.Minv, C + D), nu_r) + np.matmul(self.Minv, tau_sum) - np.matmul(self.Minv,
-                                                                                                           g) + Dnu_c
-        # Forward Euler integration [k+1]
-        nu += sampleTime * nu_dot
+        for i in range(pre_step):
+            # 通过前述函数获得下个时刻系统状态变化。
+            # 这里需要注意引用的index为[:, i]，因为X为(n_states, N+1)矩阵
+            f_value = f(X[:, i], U[:, i])
+            X[:, i + 1] = X[:, i] + f_value * sampleTime
 
-        return nu, u_actual
+        # ff = ca.Function('ff', [U, P], [X], ['input_U', 'target_state'], ['horizon_states'])
+
+        Q = np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                      [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+        R = np.array([[0.5, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+
+        obj = 0  # 初始化优化目标值
+        for i in range(pre_step):
+            # 在 N 步内对获得优化目标表达式
+            obj = obj + ca.mtimes([(X[:, i] - P[6:]).T, Q, X[:, i] - P[6:]]) + ca.mtimes([U[:, i].T, R, U[:, i]])
+
+        gg = []  # 用list来存储优化目标的向量
+        for i in range(pre_step):
+            # 这里的约束条件只有小车的坐标（x,y）必须在-2至2之间
+            # 由于xy没有特异性，所以在这个例子中顺序不重要（但是在更多实例中，这个很重要）
+            gg.append(X[0, i])
+            gg.append(X[1, i])
+            gg.append(X[2, i])
+            gg.append(X[3, i])
+            gg.append(X[4, i])
+            gg.append(X[5, i])
+
+        nlp_prob = {'f': obj, 'x': ca.reshape(U, -1, 1), 'p': P, 'g': ca.vertcat(*gg)}
+
+        opts_setting = {'ipopt.max_iter': 1000,
+                        'ipopt.print_level': 0,
+                        'print_time': 0,
+                        'ipopt.acceptable_tol': 1e-8,
+                        'ipopt.acceptable_obj_change_tol': 1e-6}
+
+        solver = ca.nlpsol('solver', 'ipopt', nlp_prob, opts_setting)
+
+        lbx = []  # 最低约束条件
+        ubx = []  # 最高约束条件
+        for _ in range(pre_step):
+            lbx.append(-self.deltaMax_r)
+            ubx.append(self.deltaMax_r)
+            lbx.append(-self.deltaMax_s)
+            ubx.append(self.deltaMax_s)
+            lbx.append(self.nMax - 25)
+            ubx.append(self.nMax)
+
+        mpc_state0 = nu.reshape(-1, 1)  # 小车初始状态
+        mpc_state_stable = np.array([0.0, 0.0, 0.0, delta_Z, 0.0, 0.0]).reshape(-1, 1)  # 小车末了状态
+
+        mpc_u0 = np.array(np.tile(u_actual, (pre_step, 1))).reshape(-1, 3)  # 系统初始控制状态，为了统一本例中所有numpy有关
+
+        c_p = np.concatenate((mpc_state0, mpc_state_stable))
+        init_control = ca.reshape(mpc_u0, -1, 1)
+        res = solver(x0=init_control, p=c_p, lbx=lbx, ubx=ubx)
+        u_sol = ca.reshape(res['x'], n_controls, pre_step)
+        u_control = np.array(u_sol[:, 0]).reshape(1, 3)[0]
+        # ff_value = ff(u_sol, c_p)
+        return u_control
