@@ -36,6 +36,16 @@
 
 > https://github.com/cybergalactic/PythonVehicleSimulator
 
-深度控制，较大尺度的深度变化，能体现出 RG 的重要性。
+
+
+对 AUV 进行深度控制，较大尺度的深度变化，能体现出 RG 的重要性。
 
 同时对姿态约束：纵倾角不能太大。这样符合实际应用需求，并且约束更强，更可以体现 RG 的重要性。
+
+
+
+目前可以确定的是：使用 `Reference Governor + MPC` 能够保证 MPC 的`迭代可行性`，加上文中提出的`不变集、终端代价`的计算，从而保证系统`稳定性`。（RG 更多的是体现对 MPC 算法的改进，没有应用层面的体现）
+
+如果能够在外环就对参考指令进行调节（这里的功能不是为了保证迭代可行性，而是为了保证后续的参考指令能够到达），更能够体现 AUV 在海底运行的实际情况。
+
+> Yan Z, Gong P, Zhang W, et al. Model predictive control of autonomous underwater vehicles for trajectory tracking with external disturbances[J]. Ocean Engineering, 2020, 217: 107884.
