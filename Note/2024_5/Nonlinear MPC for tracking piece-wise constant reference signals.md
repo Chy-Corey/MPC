@@ -75,3 +75,62 @@ $\varepsilon$ 是一个非常小的正数。
 ### 不变集的计算
 
 <img src="E:\Library\硕士实验室\MPC\Note\2024_5\img\10.png" alt="10" style="zoom:80%;" />
+
+
+
+#### 线性系统
+
+根据不变集的定义：
+
+![11](.\img\11.png)
+
+其中 w 是状态， $W_\lambda$ 是约束。
+
+这个集合是通过迭代的形式定义的，就可以用迭代来求解：
+
+![12](.\img\12.png)
+
+
+
+#### 非线性系统
+
+非线性系统无法通过求解线性优化问题离线得到不变集，一般采用Lyapunov方法：
+
+![13](.\img\13.png)
+
+这种方法要在非线性模型中找到一个 Lyapunov 函数，比较困难；文章：
+
+> Chen H, Allgöwer F. A quasi-infinite horizon nonlinear model predictive control scheme with guaranteed stability[J]. Automatica, 1998, 34(10): 1205-1217.
+
+提供了一种线性化的方法，因为线性模型的 Lyapunov 方程比较好找：
+
+![14](E:\Library\硕士实验室\MPC\Note\2024_5\img\14.png)
+
+
+
+### $V_O$ 的设计
+
+文章没有提及，根据观察文中仿真的设定，$V_O$ 设置的比较大，数值上一般在 Q 矩阵的 100 倍。
+
+![15](.\img\15.png)
+
+
+
+### $V_f$ 设计
+
+ 文章未说明如何设计，在仿真部分，文章直接使用了线性化后的系统方程，求解Lyapunov方程得到 cost to go：
+
+![16](.\img\16.png)
+
+### 文章提供的解决方法
+
+#### 终端相等约束
+
+直接令终端状态等于稳态，这样就不需要终端代价和终端约束。这种方法会损失递归可行性。
+
+<img src=".\img\17.png" alt="17" style="zoom:80%;" />
+
+<img src=".\img\18.png" alt="18" style="zoom:80%;" />
+
+#### 无终端约束设计
+

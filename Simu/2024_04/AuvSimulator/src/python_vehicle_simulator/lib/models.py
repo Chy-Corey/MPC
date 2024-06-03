@@ -15,7 +15,7 @@ def clarke83(U, L, B, T, Cb, R66, xg, T_surge):
     [M,N] = clarke83(U,L,B,T,Cb,R66,xg,T_surge) computes the system matrices 
     of a linear maneuvering model based on Clarke et al. (1983). The  
     hydrodynamic derivatives are based on multiple  linear regression from two 
-    sets of model tests. The first data set (Yv, Yr, Nv, Nr) is obtained from 
+    sets of model ceshi. The first data set (Yv, Yr, Nv, Nr) is obtained from
     rotating arm model experiments, while the second data set 
     (Yvdot, Yrdot, Nvdot, Nrdot, Yv, Yr, Nv, Nr) was obtained from a PMM  model.
     
