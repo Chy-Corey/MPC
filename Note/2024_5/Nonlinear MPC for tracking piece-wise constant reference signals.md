@@ -34,13 +34,13 @@
 
 这里的激活我理解为数值达到约束边界。
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_5\img\04.png" alt="04" style="zoom:80%;" />
+<img src=".\img\04.png" alt="04" style="zoom:80%;" />
 
 $\varepsilon$ 是一个非常小的正数。
 
 那么约束未激活的稳态集合可以表示为：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_5\img\05.png" alt="05" style="zoom:80%;" />
+<img src=".\img\05.png" alt="05" style="zoom:80%;" />
 
 那么集合 $Z_s$ 内的稳态就可以逼近约束边界但不激活约束。
 
@@ -48,7 +48,7 @@ $\varepsilon$ 是一个非常小的正数。
 
 **假设1：** 稳态可以由目标输出 $y_s$ 唯一决定，且连续变化：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_5\img\06.png" alt="06" style="zoom:80%;" />
+<img src=".\img\06.png" alt="06" style="zoom:80%;" />
 
 
 
@@ -58,23 +58,23 @@ $\varepsilon$ 是一个非常小的正数。
 
 ### MPC 设计
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_5\img\07.png" alt="07" style="zoom:80%;" />
+<img src=".\img\07.png" alt="07" style="zoom:80%;" />
 
 前三项用于衡量跟踪误差，最后一项衡量参考指令的偏差。
 
 结合约束、不变集，写出优化问题：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_5\img\08.png" alt="08" style="zoom:80%;" />
+<img src=".\img\08.png" alt="08" style="zoom:80%;" />
 
 稳态的对应计算公式 (9 g) 如果计算不出来，也可以直接替换为：
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_5\img\09.png" alt="09" style="zoom:80%;" /> 
+<img src=".\img\09.png" alt="09" style="zoom:80%;" /> 
 
 
 
 ### 不变集的计算
 
-<img src="E:\Library\硕士实验室\MPC\Note\2024_5\img\10.png" alt="10" style="zoom:80%;" />
+<img src=".\img\10.png" alt="10" style="zoom:80%;" />
 
 
 
@@ -90,7 +90,9 @@ $\varepsilon$ 是一个非常小的正数。
 
 ![12](.\img\12.png)
 
+也可以通过 Lyapunov 函数求解不变集。
 
+![20](.\img\20.png)
 
 #### 非线性系统
 
@@ -104,7 +106,7 @@ $\varepsilon$ 是一个非常小的正数。
 
 提供了一种线性化的方法，因为线性模型的 Lyapunov 方程比较好找：
 
-![14](E:\Library\硕士实验室\MPC\Note\2024_5\img\14.png)
+![14](.\img\14.png)
 
 
 
@@ -133,4 +135,52 @@ $\varepsilon$ 是一个非常小的正数。
 <img src=".\img\18.png" alt="18" style="zoom:80%;" />
 
 #### 无终端约束设计
+
+$V_f$ 终端代价是 Lyapunov 函数，参考上述不变集的计算，可以用 $V_f$ 来表达不变集：
+
+![19](.\img\19.png)
+
+$V_f$ 围绕 0 点递减，只要选择一个合适的 $\alpha$ 满足系统约束即可。
+
+对于优化问题（9）：
+
+<img src=".\img\21.png" alt="21" style="zoom:80%;" />
+
+其优化目标函数为：
+
+<img src=".\img\07.png" alt="07" style="zoom:80%;" />
+
+现对目标函数的终端代价进行修改，修改为加权代价：$\gamma V_f(x-x_s,ys)$ 。
+
+**进行这种修改只是为了推导出最优的无终端约束的价值函数。**
+
+接下来定义五终端约束的优化问题：
+
+![22](.\img\22.png)
+
+这种修改，类似于硬约束转化为软约束，即通过增加终端代价（cost to go）的权重来达到终端约束的效果。
+
+
+
+定义 $V_{N_c,N_p}^{\gamma, 0}(x,y_t)$ 为上面优化问题 $P_{N_c, N_p}^{\gamma}(x,y_t)$ 的最优值，定义集合：
+
+![23](.\img\23.png)
+
+
+
+首先要说明 cost function 表达的是跟踪误差，这个集合量化了能够较好进行跟踪的状态 x 的范围。
+
+$N_pd$ 表示不变集中跟踪误差的上限，$\gamma \alpha$ 表示不变集中终端代价的上限。
+
+在这个集合内部的所有状态 x，作为初始状态时，系统的稳定性都能够得到保证。
+
+
+
+$\gamma$ 越大，集合 $\Upsilon_{N_p,\gamma}(y_t)$ 代表的稳定区域越大，文中没有证明，直观理解就是 $\gamma$ 越大，终端代价权重越大，“约束”效果越强，会让更多范围的初始状态进入不变集。
+
+
+
+接下来就是计算参数 $\gamma$ 。
+
+<img src=".\img\24.png" alt="24" style="zoom:80%;" />
 
