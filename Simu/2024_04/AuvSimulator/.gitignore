@@ -29,7 +29,7 @@ pip-log.txt
 pip-delete-this-directory.txt
 *.log
 
-# Unit test / coverage reports 
+# Unit test.py / coverage reports
 htmlcov/ 
 .tox/ 
 .coverage 

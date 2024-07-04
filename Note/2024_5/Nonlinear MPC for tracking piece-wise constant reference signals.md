@@ -184,3 +184,12 @@ $\gamma$ 越大，集合 $\Upsilon_{N_p,\gamma}(y_t)$ 代表的稳定区域越�
 
 <img src=".\img\24.png" alt="24" style="zoom:80%;" />
 
+
+
+### 避障功能
+
+Rossister 的参考前馈 MPC 效果不是很好：
+
+<img src=".\img\26.png" alt="26" style="zoom:55%;" />
+
+对于**“避障/防止碰撞”** 的要求，使用障碍函数即可。

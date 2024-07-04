@@ -12,6 +12,7 @@ Author:     Thor I. Fossen
 
 import numpy as np
 import math
+import casadi as ca
 
 
 # ------------------------------------------------------------------------------
@@ -41,16 +42,31 @@ def sat(x, x_min, x_max):
 
 # ------------------------------------------------------------------------------
 
+# def Smtrx(a):
+#     """
+#     S = Smtrx(a) computes the 3x3 vector skew-symmetric matrix S(a) = -S(a)'.
+#     The cross product satisfies: a x b = S(a)b.
+#     """
+#
+#     S = np.array([
+#         [0, -a[2], a[1]],
+#         [a[2], 0, -a[0]],
+#         [-a[1], a[0], 0]])
+#
+#     return S
+
+
 def Smtrx(a):
     """
     S = Smtrx(a) computes the 3x3 vector skew-symmetric matrix S(a) = -S(a)'.
-    The cross product satisfies: a x b = S(a)b. 
+    The cross product satisfies: a x b = S(a)b.
     """
 
-    S = np.array([
-        [0, -a[2], a[1]],
-        [a[2], 0, -a[0]],
-        [-a[1], a[0], 0]])
+    S = ca.vertcat(
+        ca.horzcat(0, -a[2], a[1]),
+        ca.horzcat(a[2], 0, -a[0]),
+        ca.horzcat(-a[1], a[0], 0)
+    )
 
     return S
 
@@ -97,6 +113,28 @@ def Rzyx(phi, theta, psi):
     return R
 
 
+def Rzyx_mpc(phi, theta, psi):
+    """
+    R = Rzyx(phi,theta,psi) computes the Euler angle rotation matrix R in SO(3)
+    using the zyx convention
+    """
+
+    cphi = ca.cos(phi)
+    sphi = ca.sin(phi)
+    cth = ca.cos(theta)
+    sth = ca.sin(theta)
+    cpsi = ca.cos(psi)
+    spsi = ca.sin(psi)
+
+    R = ca.vertcat(
+        ca.horzcat(cpsi * cth, -spsi * cphi + cpsi * sth * sphi, spsi * sphi + cpsi * cphi * sth),
+        ca.horzcat(spsi * cth, cpsi * cphi + sphi * sth * spsi, -cpsi * sphi + sth * spsi * cphi),
+        ca.horzcat(-sth, cth * sphi, cth * cphi)
+    )
+
+    return R
+
+
 # ------------------------------------------------------------------------------
 
 def Tzyx(phi, theta):
@@ -116,6 +154,28 @@ def Tzyx(phi, theta):
             [0, cphi, -sphi],
             [0, sphi / cth, cphi / cth]])
 
+    except ZeroDivisionError:
+        print("Tzyx is singular for theta = +-90 degrees.")
+
+    return T
+
+
+def Tzyx_mpc(phi, theta):
+    """
+    T = Tzyx(phi,theta) computes the Euler angle attitude
+    transformation matrix T using the zyx convention
+    """
+
+    cphi = ca.cos(phi)
+    sphi = ca.sin(phi)
+    cth = ca.cos(theta)
+    sth = ca.sin(theta)
+    try:
+        T = ca.vertcat(
+            ca.horzcat(1, sphi * sth / cth, cphi * sth / cth),
+            ca.horzcat(0, cphi, -sphi),
+            ca.horzcat(0, sphi / cth, cphi / cth)
+        )
     except ZeroDivisionError:
         print("Tzyx is singular for theta = +-90 degrees.")
 
@@ -150,34 +210,44 @@ def m2c(M, nu):
 
     M = 0.5 * (M + M.T)  # systematization of the inertia matrix
 
-    if len(nu) == 6:  # 6-DOF model
+    M11 = M[0:3, 0:3]
+    M12 = M[0:3, 3:6]
+    M21 = M12.T
+    M22 = M[3:6, 3:6]
+    nu1 = nu[0:3]
+    nu2 = nu[3:6]
+    dt_dnu1 = np.matmul(M11, nu1) + np.matmul(M12, nu2)
+    dt_dnu2 = np.matmul(M21, nu1) + np.matmul(M22, nu2)
+    # C  = [  zeros(3,3)      -Smtrx(dt_dnu1)
+    #      -Smtrx(dt_dnu1)  -Smtrx(dt_dnu2) ]
+    C = np.zeros((6, 6))
+    C[0:3, 3:6] = -Smtrx(dt_dnu1)
+    C[3:6, 0:3] = -Smtrx(dt_dnu1)
+    C[3:6, 3:6] = -Smtrx(dt_dnu2)
 
-        M11 = M[0:3, 0:3]
-        M12 = M[0:3, 3:6]
-        M21 = M12.T
-        M22 = M[3:6, 3:6]
+    return C
 
-        nu1 = nu[0:3]
-        nu2 = nu[3:6]
-        dt_dnu1 = np.matmul(M11, nu1) + np.matmul(M12, nu2)
-        dt_dnu2 = np.matmul(M21, nu1) + np.matmul(M22, nu2)
 
-        # C  = [  zeros(3,3)      -Smtrx(dt_dnu1)
-        #      -Smtrx(dt_dnu1)  -Smtrx(dt_dnu2) ]
-        C = np.zeros((6, 6))
-        C[0:3, 3:6] = -Smtrx(dt_dnu1)
-        C[3:6, 0:3] = -Smtrx(dt_dnu1)
-        C[3:6, 3:6] = -Smtrx(dt_dnu2)
+def m2c_mpc(M, nu):
+    """
+    C = m2c(M,nu) computes the Coriolis and centripetal matrix C from the
+    mass matrix M and generalized velocity vector nu
+    """
+    M = 0.5 * (M + M.T)  # systematization of the inertia matrix
 
-    else:  # 3-DOF model (surge, sway and yaw)
-        # C = [ 0             0            -M(2,2)*nu(2)-M(2,3)*nu(3)
-        #      0             0             M(1,1)*nu(1)
-        #      M(2,2)*nu(2)+M(2,3)*nu(3)  -M(1,1)*nu(1)          0  ]    
-        C = np.zeros((3, 3))
-        C[0, 2] = -M[1, 1] * nu[1] - M[1, 2] * nu[2]
-        C[1, 2] = M[0, 0] * nu[0]
-        C[2, 0] = -C[0, 2]
-        C[2, 1] = -C[1, 2]
+    M11 = M[0:3, 0:3]
+    M12 = M[0:3, 3:6]
+    M21 = M12.T
+    M22 = M[3:6, 3:6]
+    nu1 = nu[0:3]
+    nu2 = nu[3:6]
+    dt_dnu1 = ca.mtimes(M11, nu1) + ca.mtimes(M12, nu2)
+    dt_dnu2 = ca.mtimes(M21, nu1) + ca.mtimes(M22, nu2)
+
+    C = ca.SX.zeros(6, 6)
+    C[0:3, 3:6] = -Smtrx(dt_dnu1)
+    C[3:6, 0:3] = -Smtrx(dt_dnu1)
+    C[3:6, 3:6] = -Smtrx(dt_dnu2)
 
     return C
 
@@ -236,6 +306,37 @@ def crossFlowDrag(L, B, T, nu_r):
         xL += dx
 
     tau_crossflow = np.array([0, Yh, 0, 0, 0, Nh], float)
+
+    return tau_crossflow
+
+
+def crossFlowDrag_mpc(L, B, T, nu_r):
+    """
+    tau_crossflow = crossFlowDrag(L,B,T,nu_r) computes the cross-flow drag
+    integrals for a marine craft using strip theory.
+
+    M d/dt nu_r + C(nu_r)*nu_r + D*nu_r + g(eta) = tau + tau_crossflow
+    """
+
+    rho = 1026  # density of water
+    n = 20  # number of strips
+
+    dx = L / 20
+    Cd_2D = Hoerner(B, T)  # 2D drag coefficient based on Hoerner's curve
+
+    Yh = 0
+    Nh = 0
+    xL = -L / 2
+
+    for i in range(0, n + 1):
+        v_r = nu_r[1]  # relative sway velocity
+        r = nu_r[5]  # yaw rate
+        Ucf = ca.fabs(v_r + xL * r) * (v_r + xL * r)
+        Yh = Yh - 0.5 * rho * T * Cd_2D * Ucf * dx  # sway force
+        Nh = Nh - 0.5 * rho * T * Cd_2D * xL * Ucf * dx  # yaw moment
+        xL += dx
+
+    tau_crossflow = ca.vertcat(0, Yh, 0, 0, 0, Nh)
 
     return tau_crossflow
 
@@ -345,6 +446,109 @@ def forceLiftDrag(b, S, CD_0, alpha, U_r):
     return tau_liftdrag
 
 
+def forceLiftDrag_mpc(b, S, CD_0, alpha, U_r):
+    """
+    tau_liftdrag = forceLiftDrag(b,S,CD_0,alpha,Ur) computes the hydrodynamic
+    lift and drag forces of a submerged "wing profile" for varying angle of
+    attack (Beard and McLain 2012). Application:
+
+      M d/dt nu_r + C(nu_r)*nu_r + D*nu_r + g(eta) = tau + tau_liftdrag
+
+    Inputs:
+        b:     wing span (m)
+        S:     wing area (m^2)
+        CD_0:  parasitic drag (alpha = 0), typically 0.1-0.2 for a streamlined body
+        alpha: angle of attack, scalar or vector (rad)
+        U_r:   relative speed (m/s)
+
+    Returns:
+        tau_liftdrag:  6x1 generalized force vector
+    """
+
+    # constants
+    rho = 1026
+
+    def coeffLiftDrag(b, S, CD_0, alpha, sigma):
+        """
+        [CL,CD] = coeffLiftDrag(b,S,CD_0,alpha,sigma) computes the hydrodynamic
+        lift CL(alpha) and drag CD(alpha) coefficients as a function of alpha
+        (angle of attack) of a submerged "wing profile" (Beard and McLain 2012)
+
+        CD(alpha) = CD_p + (CL_0 + CL_alpha * alpha)^2 / (pi * e * AR)
+        CL(alpha) = CL_0 + CL_alpha * alpha
+
+        where CD_p is the parasitic drag (profile drag of wing, friction and
+        pressure drag of control surfaces, hull, etc.), CL_0 is the zero angle
+        of attack lift coefficient, AR = b^2/S is the aspect ratio and e is the
+        Oswald efficiency number. For lift it is assumed that
+
+        CL_0 = 0
+        CL_alpha = pi * AR / ( 1 + sqrt(1 + (AR/2)^2) );
+
+        implying that for alpha = 0, CD(0) = CD_0 = CD_p and CL(0) = 0. For
+        high angles of attack the linear lift model can be blended with a
+        nonlinear model to describe stall
+
+        CL(alpha) = (1-sigma) * CL_alpha * alpha + ...
+            sigma * 2 * sign(alpha) * sin(alpha)^2 * cos(alpha)
+
+        where 0 <= sigma <= 1 is a blending parameter.
+
+        Inputs:
+            b:       wing span (m)
+            S:       wing area (m^2)
+            CD_0:    parasitic drag (alpha = 0), typically 0.1-0.2 for a
+                     streamlined body
+            alpha:   angle of attack, scalar or vector (rad)
+            sigma:   blending parameter between 0 and 1, use sigma = 0 f
+                     or linear lift
+            display: use 1 to plot CD and CL (optionally)
+
+        Returns:
+            CL: lift coefficient as a function of alpha
+            CD: drag coefficient as a function of alpha
+
+        Example:
+            Cylinder-shaped AUV with length L = 1.8, diameter D = 0.2 and
+            CD_0 = 0.3
+
+            alpha = 0.1 * pi/180
+            [CL,CD] = coeffLiftDrag(0.2, 1.8*0.2, 0.3, alpha, 0.2)
+        """
+
+        e = 0.7  # Oswald efficiency number
+        AR = b ** 2 / S  # wing aspect ratio
+
+        # linear lift
+        CL_alpha = ca.pi * AR / (1 + ca.sqrt(1 + (AR / 2) ** 2))
+        CL = CL_alpha * alpha
+
+        # parasitic and induced drag
+        CD = CD_0 + CL ** 2 / (ca.pi * e * AR)
+
+        # nonlinear lift (blending function)
+        CL = (1 - sigma) * CL + sigma * 2 * ca.sign(alpha) \
+             * ca.sin(alpha) ** 2 * ca.cos(alpha)
+
+        return CL, CD
+
+    [CL, CD] = coeffLiftDrag(b, S, CD_0, alpha, 0)
+
+    F_drag = 1 / 2 * rho * U_r ** 2 * S * CD  # drag force
+    F_lift = 1 / 2 * rho * U_r ** 2 * S * CL  # lift force
+
+    # transform from FLOW axes to BODY axes using angle of attack
+    tau_liftdrag = ca.vertcat(
+        ca.cos(alpha) * (-F_drag) - ca.sin(alpha) * (-F_lift),
+        0,
+        ca.sin(alpha) * (-F_drag) + ca.cos(alpha) * (-F_lift),
+        0,
+        0,
+        0)
+
+    return tau_liftdrag
+
+
 # ------------------------------------------------------------------------------
 
 def gvect(W, B, theta, phi, r_bg, r_bb):
@@ -375,5 +579,37 @@ def gvect(W, B, theta, phi, r_bg, r_bb):
         (r_bg[2] * W - r_bb[2] * B) * sth + (r_bg[0] * W - r_bb[0] * B) * cth * cphi,
         -(r_bg[0] * W - r_bb[0] * B) * cth * sphi - (r_bg[1] * W - r_bb[1] * B) * sth
     ])
+
+    return g
+
+
+def gvect_mpc(W, B, theta, phi, r_bg, r_bb):
+    """
+    g = gvect(W,B,theta,phi,r_bg,r_bb) computes the 6x1 vector of restoring
+    forces about an arbitrarily point CO for a submerged body.
+
+    Inputs:
+        W, B: weight and buoyancy (kg)
+        phi,theta: roll and pitch angles (rad)
+        r_bg = [x_g y_g z_g]: location of the CG with respect to the CO (m)
+        r_bb = [x_b y_b z_b]: location of the CB with respect to th CO (m)
+
+    Returns:
+        g: 6x1 vector of restoring forces about CO
+    """
+
+    sth = ca.sin(theta)
+    cth = ca.cos(theta)
+    sphi = ca.sin(phi)
+    cphi = ca.cos(phi)
+
+    g = ca.vertcat(
+        (W - B) * sth,
+        -(W - B) * cth * sphi,
+        -(W - B) * cth * cphi,
+        -(r_bg[1] * W - r_bb[1] * B) * cth * cphi + (r_bg[2] * W - r_bb[2] * B) * cth * sphi,
+        (r_bg[2] * W - r_bb[2] * B) * sth + (r_bg[0] * W - r_bb[0] * B) * cth * cphi,
+        -(r_bg[0] * W - r_bb[0] * B) * cth * sphi - (r_bg[1] * W - r_bb[1] * B) * sth
+    )
 
     return g

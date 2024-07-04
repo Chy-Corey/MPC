@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 main.py: Main program for the Python Vehicle Simulator, which can be used
-    to simulate and test guidance, navigation and control (GNC) systems.
+    to simulate and test.py guidance, navigation and control (GNC) systems.
 
 Reference: T. I. Fossen (2021). Handbook of Marine Craft Hydrodynamics and
 Motion Control. 2nd edition, John Wiley & Sons, Chichester, UK. 
@@ -39,7 +39,7 @@ match no:  # The match statement requires Python >= 3.10
         vehicle = remus100('mpcDepthControl', 30, 0, 1525, 0, 0)
     case '3':
         # model_sim not run
-        vehicle = remus100('mpcDepthControl', 30, 0, 1525, 0, 0)
+        vehicle = remus100('mpcDepthControl', 20, 0, 1525, 0, 0)
     case '9':
         vehicle = remus100_raw('depthHeadingAutopilot', 30, 50, 1525, 0.5, 170)
     case _:
@@ -52,17 +52,17 @@ match no:  # The match statement requires Python >= 3.10
 # Main simulation loop 
 ###############################################################################
 def main():
+    print("程序开始运行。。。")
     start_time = time.time()
-    if no == '2':
-        [simTime, simData, model_SimData] = simulate_modelsim(N, sampleTime, vehicle)
-    else:
-        [simTime, simData] = simulate(N, sampleTime, vehicle)
+    [simTime, simData] = simulate(N, sampleTime, vehicle)
+
     end_time = time.time()
+
+    np.savetxt('../../data/data_x.csv', np.hstack((simTime, simData)), delimiter=',')
+
     plotVehicleStates(simTime, simData, 1)
     plotControls(simTime, simData, vehicle, 2)
     plot3D(simData, numDataPoints, FPS, filename, 3)
-    if no == '2':
-        plotModelStates(simTime, simData, model_SimData, 4)
 
     print("耗时: {:.2f}秒".format(end_time - start_time))
     """ Ucomment the line below for 3D animation in the web browswer. 

@@ -20,6 +20,7 @@ legendSize = 10  # legend size
 figSize1 = [25, 13]  # figure1 size in cm
 figSize2 = [25, 13]  # figure2 size in cm
 dpiValue = 150  # figure dpi value
+file_dir = "../../fig/"
 
 
 def R2D(value):  # radians to degrees
@@ -69,7 +70,7 @@ def plotVehicleStates(simTime, simData, figNo):
     plt.grid()
 
     plt.subplot(3, 3, 2)
-    plt.plot(t, z)
+    plt.plot(t, -z)
     plt.legend(["Depth (m)"], fontsize=legendSize)
     plt.grid()
 
@@ -118,10 +119,53 @@ def plotVehicleStates(simTime, simData, figNo):
     plt.xlabel("Time (s)", fontsize=12)
     plt.legend(["Yaw angle (deg)", "Crab angle (deg)"], fontsize=legendSize)
     plt.grid()
+    plt.savefig(file_dir + 'states.png')
 
 
 # plotControls(simTime, simData) plots the vehicle control inputs versus time
 # in figure no. figNo
+
+# def plotVehicleStates(simTime, simData, figNo):
+#     # Time vector
+#     t = simTime
+#
+#     # State vectors
+#     x = simData[:, 0]
+#     y = simData[:, 1]
+#     z = simData[:, 2]
+#     phi = R2D(ssa(simData[:, 3]))
+#     theta = R2D(ssa(simData[:, 4]))
+#     psi = R2D(ssa(simData[:, 5]))
+#     u = simData[:, 6]
+#     v = simData[:, 7]
+#     w = simData[:, 8]
+#     p = R2D(simData[:, 9])
+#     q = R2D(simData[:, 10])
+#     r = R2D(simData[:, 11])
+#
+#     # Speed
+#     U = np.sqrt(np.multiply(u, u) + np.multiply(v, v) + np.multiply(w, w))
+#
+#     beta_c = R2D(ssa(np.arctan2(v, u)))  # crab angle, beta_c
+#     alpha_c = R2D(ssa(np.arctan2(w, u)))  # flight path angle
+#     chi = R2D(ssa(simData[:, 5] + np.arctan2(v, u)))  # course angle, chi=psi+beta_c
+#
+#     # Plots
+#     plt.figure(
+#         figNo, figsize=(cm2inch(figSize1[0]), cm2inch(figSize1[1])), dpi=dpiValue
+#     )
+#     plt.grid()
+#
+#     plt.plot(t, -z)
+#     plt.ylabel("Depth (m)", fontsize=12)
+#     plt.xlabel("Time (s)", fontsize=12)
+#     plt.grid()
+#
+#     plt.title("AUV depth tracking", fontsize=12)
+#
+#     plt.savefig(file_dir + 'states0.png')
+
+
 def plotControls(simTime, simData, vehicle, figNo):
     DOF = 6
 
@@ -154,10 +198,52 @@ def plotControls(simTime, simData, vehicle, figNo):
         )
         plt.xlabel("Time (s)", fontsize=12)
         plt.grid()
+    plt.savefig(file_dir + 'control.png')
 
 
 # plot3D(simData,numDataPoints,FPS,filename,figNo) plots the vehicles position (x, y, z) in 3D
 # in figure no. figNo
+
+# def plotControls(simTime, simData, vehicle, figNo):
+#     DOF = 6
+#
+#     # Time vector
+#     t = simTime
+#
+#     plt.figure(
+#         figNo, figsize=(cm2inch(figSize2[0]), cm2inch(figSize2[1])), dpi=dpiValue
+#     )
+#
+#     # Columns and rows needed to plot vehicle.dimU control inputs
+#     col = 2
+#     row = 1
+#
+#     # Plot the vehicle.dimU active control inputs
+#     j = 1
+#     for i in range(0, vehicle.dimU):
+#
+#         u_control = simData[:, 2 * DOF + i]  # control input, commands
+#         u_actual = simData[:, 2 * DOF + vehicle.dimU + i]  # actual control input
+#
+#         if vehicle.controls[i].find("Stern") != -1:
+#             if vehicle.controls[i].find("deg") != -1:  # convert angles to deg
+#                 u_control = R2D(u_control)
+#                 u_actual = R2D(u_actual)
+#
+#             plt.subplot(row, col, j)
+#
+#             plt.plot(t, u_control, t, u_actual)
+#             plt.legend(
+#                 [vehicle.controls[i] + ", command", vehicle.controls[i] + ", actual"],
+#                 fontsize=legendSize,
+#             )
+#             j += 1
+#             plt.xlabel("Time (s)", fontsize=12)
+#             plt.ylabel("Control (deg)", fontsize=12)
+#             plt.grid()
+#    plt.savefig(file_dir + 'control0.png')
+
+
 def plot3D(simData, numDataPoints, FPS, filename, figNo):
     # State vectors
     x = simData[:, 0]
@@ -165,8 +251,8 @@ def plot3D(simData, numDataPoints, FPS, filename, figNo):
     z = simData[:, 2]
 
     # down-sampling the xyz data points
-    N = y[::len(x) // numDataPoints];
-    E = x[::len(x) // numDataPoints];
+    E = y[::len(x) // numDataPoints];
+    N = x[::len(x) // numDataPoints];
     D = z[::len(x) // numDataPoints];
 
     # Animation function
@@ -278,4 +364,3 @@ def plotModelStates(simTime, simData, model_simData, figNo):
     plt.plot(t, model_r, "-", t, r, "--")
     plt.legend(["Model yaw rate (deg/s)", "Yaw rate (deg/s)"], fontsize=legendSize)
     plt.grid()
-
